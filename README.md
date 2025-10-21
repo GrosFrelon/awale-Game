@@ -1,2 +1,2 @@
-# awal-Game
+# awale-Game
 awalé game serveur
