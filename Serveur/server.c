@@ -88,7 +88,7 @@ static void app(void) {
       c.inGame = 0;
       clients[actual] = c;
       actual++;
-      send_unoccupied_clients(clients, c, actual);
+      //send_unoccupied_clients(clients, c, actual);  //Pour envoyer la liste des joueurs co à la première connexion
     } else {
       int i = 0;
       for (i = 0; i < actual; i++) {
@@ -226,8 +226,53 @@ static void analyse_command(Client client, const char *buffer, Client *clients,
     if (strncmp(buffer, "/users", 6) == 0) {
       send_unoccupied_clients(clients, client, actual);
     }
+    else if (strncmp(buffer, "/challenge", 10) == 0) {
+      char receiver_name[BUF_SIZE];
+      if(sscanf(buffer+10, " %s", receiver_name) != 1){
+        write_client(client.sock, "Usage: /challenge <name>\n");
+        return;
+      }
+      send_request_challenge(client, receiver_name, clients, actual);
+    }
+    else{
+      write_client(client.sock, "bad command");
+    }
   }
 }
+
+static void send_request_challenge(Client sender, char* receiver, Client* clients, int actual){
+  Client* pClient = is_client_unocupied(clients, receiver, actual);
+  char message[BUF_SIZE];
+  message[0] = 0;
+
+  if(pClient != 0){
+    strncpy(message, "Challenge request send to : ", sizeof(message) - strlen(message) - 1);
+    strncat(message, pClient->name, sizeof(message) - strlen(message) - 1);
+    write_client(sender.sock, message);
+
+    strncpy(message, sender.name, sizeof(message) - strlen(message) - 1);
+    strncat(message, " challenge you", sizeof(message) - strlen(message) - 1);
+    write_client(pClient->sock, message);
+  }
+  else{
+    strncpy(message, "Receiver not found : ", sizeof(message) - strlen(message) - 1);
+    strncat(message, receiver, sizeof(message) - strlen(message) - 1);
+    write_client(sender.sock, message);
+  }
+}
+
+static Client* is_client_unocupied(Client* clients, char* client, int actual){
+  int position = 0;
+  Client clientTmp;
+  for(position=0; position<actual;position++){
+    clientTmp = clients[position];
+    if (strcmp(client,clientTmp.name)==0 && clientTmp.inGame == 0){
+      return &clients[position];
+    }
+  }
+  return 0;
+}
+
 
 int main(int argc, char **argv) {
   init();

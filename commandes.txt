@@ -1,0 +1,2 @@
+/users -> liste des joueurs connectés
+/games -> liste des parties en cours

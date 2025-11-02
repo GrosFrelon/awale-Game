@@ -20,3 +20,4 @@ Une fois le challenge accepté, ça lance une partie et les joueurs ne sont plus
 
 /users -> liste des joueurs connectés
 /games -> liste des parties en cours
+/challenge {name_online_player}
