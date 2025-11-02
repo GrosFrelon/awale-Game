@@ -21,3 +21,10 @@ Une fois le challenge accepté, ça lance une partie et les joueurs ne sont plus
 /users -> liste des joueurs connectés
 /games -> liste des parties en cours
 /challenge {name_online_player}
+
+## Questions
+
+Comment on stocke les clients (joueurs dans le serveurs)
+Comment on stocke les parties? (fifo?)
+Comment on gère l'attente de la validation de la demande de partie
+Comment en règle général on traite la requete? étape 1 : on checke si le joueur existe, puis on regarde son status puis ....

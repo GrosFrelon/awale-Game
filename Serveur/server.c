@@ -85,10 +85,10 @@ static void app(void) {
 
       Client c = {csock};
       strncpy(c.name, buffer, BUF_SIZE - 1);
-      c.inGame = 0;
+      c.status = Unocupied;
       clients[actual] = c;
       actual++;
-      //send_unoccupied_clients(clients, c, actual);  //Pour envoyer la liste des joueurs co à la première connexion
+      send_welcome_message(c);
     } else {
       int i = 0;
       for (i = 0; i < actual; i++) {
@@ -104,7 +104,7 @@ static void app(void) {
             strncat(buffer, " disconnected !", BUF_SIZE - strlen(buffer) - 1);
             send_message_to_all_clients(clients, client, actual, buffer, 1);
           } else {
-            analyse_command(client, buffer, clients, actual);
+            analyse_command(&clients[i], buffer, clients, actual);
 
             // send_message_to_all_clients(clients, client, actual, buffer, 0);
           }
@@ -158,11 +158,11 @@ static void send_unoccupied_clients(Client *clients, Client sender,
   char message[BUF_SIZE];
   message[0] = 0;
 
-  strncpy(message, "List of online players :\n",
+  strncpy(message, "List of online players unocupied:\n",
           sizeof(message) - strlen(message) - 1);
 
   for (i = 0; i < actual; i++) {
-    if (!clients[i].inGame && clients[i].sock != sender.sock) {
+    if (clients[i].status == Unocupied && clients[i].sock != sender.sock) {
       strncat(message, "\t- ", sizeof(message) - strlen(message) - 1);
       strncat(message, clients[i].name, sizeof(message) - strlen(message) - 1);
       strncat(message, "\n", sizeof(message) - strlen(message) - 1);
@@ -220,45 +220,62 @@ static void write_client(SOCKET sock, const char *buffer) {
   }
 }
 
-static void analyse_command(Client client, const char *buffer, Client *clients,
+static void analyse_command(Client* sender, const char *buffer, Client *clients,
                             int actual) {
   if (buffer[0] == '/') {
     if (strncmp(buffer, "/users", 6) == 0) {
-      send_unoccupied_clients(clients, client, actual);
+      send_unoccupied_clients(clients, *sender, actual);
     }
     else if (strncmp(buffer, "/challenge", 10) == 0) {
       char receiver_name[BUF_SIZE];
       if(sscanf(buffer+10, " %s", receiver_name) != 1){
-        write_client(client.sock, "Usage: /challenge <name>\n");
+        write_client( sender->sock, "Usage: /challenge <name>\n");
         return;
       }
-      send_request_challenge(client, receiver_name, clients, actual);
+      send_request_challenge(sender, receiver_name, clients, actual);
     }
     else{
-      write_client(client.sock, "bad command");
+      write_client(sender->sock, "bad command");
     }
   }
 }
 
-static void send_request_challenge(Client sender, char* receiver, Client* clients, int actual){
+static void send_request_challenge(Client* sender, char* receiver, Client* clients, int actual){
   Client* pClient = is_client_unocupied(clients, receiver, actual);
   char message[BUF_SIZE];
   message[0] = 0;
-
-  if(pClient != 0){
-    strncpy(message, "Challenge request send to : ", sizeof(message) - strlen(message) - 1);
-    strncat(message, pClient->name, sizeof(message) - strlen(message) - 1);
-    write_client(sender.sock, message);
-
-    strncpy(message, sender.name, sizeof(message) - strlen(message) - 1);
-    strncat(message, " challenge you", sizeof(message) - strlen(message) - 1);
-    write_client(pClient->sock, message);
-  }
-  else{
+  if(pClient==0){
     strncpy(message, "Receiver not found : ", sizeof(message) - strlen(message) - 1);
     strncat(message, receiver, sizeof(message) - strlen(message) - 1);
-    write_client(sender.sock, message);
+    write_client(sender->sock, message);
   }
+  else if (pClient->sock == sender->sock){
+    strncpy(message, "You can't play against yourself", sizeof(message) - strlen(message) - 1);
+    write_client(sender->sock, message);
+  }
+  else {   //Comment on différencie les clients? par le sock ou le nom. En vrai pareil parcqu'on retrouve la personne avec son nom donc nom unique
+    strncpy(message, "Challenge request send to : ", sizeof(message) - strlen(message) - 1);
+    strncat(message, pClient->name, sizeof(message) - strlen(message) - 1);
+    write_client(sender->sock, message);
+
+    message[0] = 0;
+    strncpy(message, sender->name, sizeof(message) - strlen(message) - 1);
+    strncat(message, " challenge you \n Press Y to accept, N to reject", sizeof(message) - strlen(message) - 1);
+    write_client(pClient->sock, message);
+
+    pClient->status = Waiting;
+    sender->status = Waiting;
+  }
+  
+}
+
+static void send_welcome_message(Client client){
+  char message[BUF_SIZE];
+  message[0] = 0;
+  strncpy(message, "Bonjour ", sizeof(message) - strlen(message) - 1);
+  strncat(message, client.name, sizeof(message) - strlen(message) - 1);
+  strncat(message, "! Bienvenue sur le meilleur seveur de awale. Içi, une seule règle, s'amuser!", sizeof(message) - strlen(message) - 1);
+  write_client(client.sock, message);
 }
 
 static Client* is_client_unocupied(Client* clients, char* client, int actual){
@@ -266,11 +283,17 @@ static Client* is_client_unocupied(Client* clients, char* client, int actual){
   Client clientTmp;
   for(position=0; position<actual;position++){
     clientTmp = clients[position];
-    if (strcmp(client,clientTmp.name)==0 && clientTmp.inGame == 0){
+    if (strcmp(client,clientTmp.name)==0 && clientTmp.status == Unocupied){
       return &clients[position];
     }
   }
   return 0;
+}
+
+static void afficher_clients(int taille, Client* clients){
+  for (int i=0; i<taille; i++){
+    printf("nom : %s, status : %d\n", clients[i].name, clients[i].status);
+  }
 }
 
 

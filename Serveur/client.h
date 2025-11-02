@@ -3,10 +3,16 @@
 
 #include "server.h"
 
+enum etatJoueur {
+  Unocupied,  //0
+  Ingame,  //1
+  Waiting   //2
+};
+
 typedef struct {
   SOCKET sock;
   char name[BUF_SIZE];
-  int inGame;
+  enum etatJoueur status;
 } Client;
 
 #endif /* guard */

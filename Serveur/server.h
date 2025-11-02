@@ -48,9 +48,11 @@ static void send_message_to_all_clients(Client *clients, Client client,
 static void send_unoccupied_clients(Client *clients, Client client, int actual);
 static void remove_client(Client *clients, int to_remove, int *actual);
 static void clear_clients(Client *clients, int actual);
-static void analyse_command(Client client, const char *buffer, Client *clients,
+static void analyse_command(Client* client, const char *buffer, Client *clients,
                             int actual);
-static void send_request_challenge(Client sender, char* receiver, Client* clients, int actual);
+static void send_request_challenge(Client* sender, char* receiver, Client* clients, int actual);
+static void send_welcome_message(Client client);
 static Client* is_client_unocupied(Client* clients, char* client, int actual);
+static void afficher_clients(int taille, Client* clients);
 
 #endif /* guard */
