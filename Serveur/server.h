@@ -52,10 +52,11 @@ static void clear_clients(Client *clients, int actual);
 static void analyse_command(Client* client, const char *buffer, Client *clients,
                             int actual);
 static void send_request_challenge(Client* sender, char* receiver, Client* clients, int actual);
-static void send_welcome_message(Client client);
+static void send_welcome_message(Client client, int first_co);
 static Client* is_client_unocupied(Client* clients, char* client, int actual);
 static void afficher_clients(int taille, Client* clients);
 static void add_player(Player*** players, Player* player, int* nombre_player, int* taille_liste);
 static void afficher_players(int taille, Player** players);
+static Player* find_player_by_name(char* buffer, Player** players, int nb_players);
 
 #endif /* guard */

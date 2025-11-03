@@ -87,22 +87,25 @@ static void app(void) {
 
       FD_SET(csock, &rdfs);
 
-      //Player* p = find_player_by_name(buffer)  //TODO
-      
-      Player* p = malloc(sizeof(Player));
-      p->elo = 0;
-      p->gamePlayed = 0;
-      p->gamesWon = 0;
-      p->status = Unocupied;
-      p->id = id++;
-      strncpy(p->name, buffer, BUF_SIZE - 1);
+      int fist_co = 0;
+      Player* p = find_player_by_name(buffer, players, nombre_player);
+      if (p==0){
+        p = malloc(sizeof(Player));
+        p->elo = 0;
+        p->gamePlayed = 0;
+        p->gamesWon = 0;
+        p->status = Unocupied;
+        p->id = id++;
+        strncpy(p->name, buffer, BUF_SIZE - 1);
+        add_player(&players, p, &nombre_player, &taille_liste_player);
+        fist_co = 1;
+      }
       
       Client c = {.sock = csock, .player = p};
-      
       clients[actual] = c;
-      add_player(&players, p, &nombre_player, &taille_liste_player);
+    
       actual++;
-      send_welcome_message(c);
+      send_welcome_message(c, fist_co);
     } else {
       int i = 0;
       for (i = 0; i < actual; i++) {
@@ -289,12 +292,15 @@ static void send_request_challenge(Client* sender, char* receiver, Client* clien
   
 }
 
-static void send_welcome_message(Client client){
+static void send_welcome_message(Client client, int first_co){
   char message[BUF_SIZE];
   message[0] = 0;
   strncpy(message, "Bonjour ", sizeof(message) - strlen(message) - 1);
   strncat(message, client.player->name, sizeof(message) - strlen(message) - 1);
   strncat(message, "! Bienvenue sur le meilleur seveur de awale. Içi, une seule règle, s'amuser!", sizeof(message) - strlen(message) - 1);
+  if (first_co==1){
+    strncat(message, "\nC'est votre première fois içi, voulez vous vous écrire une bio? (Oui : Y, Non : N)", sizeof(message) - strlen(message) - 1);
+  }
   write_client(client.sock, message);
 }
 
@@ -320,6 +326,16 @@ static void afficher_players(int taille, Player** players){
   for (int i=0; i<taille; i++){
     printf("nom : %s, id : %d\n", players[i]->name, players[i]->id);
   }
+}
+
+static Player* find_player_by_name(char* buffer, Player** players, int nb_players){
+  for(int i=0; i<nb_players; i++){
+    if (strcmp(buffer, players[i]->name) == 0){
+      return players[i];
+    }
+  }
+  return 0;
+
 }
 
 
