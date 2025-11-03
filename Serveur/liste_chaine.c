@@ -1,16 +1,6 @@
-#include "client.h"
-#include "game.h"
 #include <stdlib.h>
+#include "liste_chaine.h"
 
-typedef struct _client_node {
-  Client *client;
-  struct _client_node *next;
-} client_node;
-
-typedef struct _game_node {
-  Game *game;
-  struct _game_node *next;
-} game_node;
 
 // void afficher() {
 //   printf("affichage de la liste:\n");
