@@ -10,7 +10,7 @@ enum status_player {
 };
 
 typedef struct {
-  char id[6];
+  int id;
   char name[BUF_SIZE];
   int elo;
   int gamePlayed;

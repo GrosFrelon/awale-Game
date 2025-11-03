@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "server.h"
-
+#include "liste_chaine.h"
 #include "client.h"
 
 static void init(void) {
@@ -24,17 +24,18 @@ static void end(void) {
 #endif
 }
 
-static unsigned int g_next_id = 1;  //TODO, changer pour que ca redémarre pas à 1 à chaque redemarage
-
 static void app(void) {
   SOCKET sock = init_connection();
   char buffer[BUF_SIZE];
   /* the index for the array */
   int actual = 0;
   int max = sock;
-  /* an array for all clients */
+  int nombre_player = 0;
+  int taille_liste_player = 10;
+  int id = 0;
+  /* an array for all clients and players */
   Client clients[MAX_CLIENTS];
-  Player* players[10];
+  Player **players = malloc(taille_liste_player * sizeof(Player*));
 
   fd_set rdfs; // structure de données pour sauvegarder ce qu'on surveille
 
@@ -86,19 +87,20 @@ static void app(void) {
 
       FD_SET(csock, &rdfs);
 
+      //Player* p = find_player_by_name(buffer)  //TODO
       
       Player* p = malloc(sizeof(Player));
       p->elo = 0;
       p->gamePlayed = 0;
       p->gamesWon = 0;
       p->status = Unocupied;
-      snprintf(p->id, sizeof(p->id), "%05u", g_next_id++);
+      p->id = id++;
       strncpy(p->name, buffer, BUF_SIZE - 1);
       
       Client c = {.sock = csock, .player = p};
       
       clients[actual] = c;
-      players[actual] = p;
+      add_player(&players, p, &nombre_player, &taille_liste_player);
       actual++;
       send_welcome_message(c);
     } else {
@@ -112,13 +114,8 @@ static void app(void) {
           if (c == 0) {
             closesocket(clients[i].sock);
             remove_client(clients, i, &actual);
-            strncpy(buffer, client.player->name, BUF_SIZE - 1);
-            strncat(buffer, " disconnected !", BUF_SIZE - strlen(buffer) - 1);
-            send_message_to_all_clients(clients, client, actual, buffer, 1);
           } else {
             analyse_command(&clients[i], buffer, clients, actual);
-
-            // send_message_to_all_clients(clients, client, actual, buffer, 0);
           }
           break;
         }
@@ -143,6 +140,17 @@ static void remove_client(Client *clients, int to_remove, int *actual) {
           (*actual - to_remove - 1) * sizeof(Client));
   /* number client - 1 */
   (*actual)--;
+}
+
+static void add_player(Player*** players, Player* player, int* nombre_player, int* taille_liste){
+  if(*nombre_player>=*taille_liste){
+    int new_cap = *taille_liste + 10;
+    Player **new_arr = realloc(*players, new_cap * sizeof(Player*));
+    *players = new_arr;
+    *taille_liste = new_cap;
+  }
+  (*players)[*nombre_player] = player;
+  (*nombre_player)++;
 }
 
 static void send_message_to_all_clients(Client *clients, Client sender,
@@ -305,6 +313,12 @@ static Client* is_client_unocupied(Client* clients, char* client, int actual){
 static void afficher_clients(int taille, Client* clients){
   for (int i=0; i<taille; i++){
     printf("nom : %s, status : %d\n", clients[i].player->name, clients[i].player->status);
+  }
+}
+
+static void afficher_players(int taille, Player** players){
+  for (int i=0; i<taille; i++){
+    printf("nom : %s, id : %d\n", players[i]->name, players[i]->id);
   }
 }
 

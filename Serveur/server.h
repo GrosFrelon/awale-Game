@@ -55,5 +55,7 @@ static void send_request_challenge(Client* sender, char* receiver, Client* clien
 static void send_welcome_message(Client client);
 static Client* is_client_unocupied(Client* clients, char* client, int actual);
 static void afficher_clients(int taille, Client* clients);
+static void add_player(Player*** players, Player* player, int* nombre_player, int* taille_liste);
+static void afficher_players(int taille, Player** players);
 
 #endif /* guard */

@@ -1,7 +1,7 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "awale.h"
+#include "../awale.h"
 #include "player.h"
 
 typedef struct {
