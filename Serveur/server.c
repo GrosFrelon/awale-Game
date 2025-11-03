@@ -24,6 +24,8 @@ static void end(void) {
 #endif
 }
 
+static unsigned int g_next_id = 1;  //TODO, changer pour que ca redémarre pas à 1 à chaque redemarage
+
 static void app(void) {
   SOCKET sock = init_connection();
   char buffer[BUF_SIZE];
@@ -32,6 +34,7 @@ static void app(void) {
   int max = sock;
   /* an array for all clients */
   Client clients[MAX_CLIENTS];
+  Player* players[10];
 
   fd_set rdfs; // structure de données pour sauvegarder ce qu'on surveille
 
@@ -83,10 +86,19 @@ static void app(void) {
 
       FD_SET(csock, &rdfs);
 
-      Client c = {csock};
-      strncpy(c.name, buffer, BUF_SIZE - 1);
-      c.status = Unocupied;
+      
+      Player* p = malloc(sizeof(Player));
+      p->elo = 0;
+      p->gamePlayed = 0;
+      p->gamesWon = 0;
+      p->status = Unocupied;
+      snprintf(p->id, sizeof(p->id), "%05u", g_next_id++);
+      strncpy(p->name, buffer, BUF_SIZE - 1);
+      
+      Client c = {.sock = csock, .player = p};
+      
       clients[actual] = c;
+      players[actual] = p;
       actual++;
       send_welcome_message(c);
     } else {
@@ -100,7 +112,7 @@ static void app(void) {
           if (c == 0) {
             closesocket(clients[i].sock);
             remove_client(clients, i, &actual);
-            strncpy(buffer, client.name, BUF_SIZE - 1);
+            strncpy(buffer, client.player->name, BUF_SIZE - 1);
             strncat(buffer, " disconnected !", BUF_SIZE - strlen(buffer) - 1);
             send_message_to_all_clients(clients, client, actual, buffer, 1);
           } else {
@@ -143,7 +155,7 @@ static void send_message_to_all_clients(Client *clients, Client sender,
     /* we don't send message to the sender */
     if (sender.sock != clients[i].sock) {
       if (from_server == 0) {
-        strncpy(message, sender.name, BUF_SIZE - 1);
+        strncpy(message, sender.player->name, BUF_SIZE - 1);
         strncat(message, " : ", sizeof message - strlen(message) - 1);
       }
       strncat(message, buffer, sizeof message - strlen(message) - 1);
@@ -162,9 +174,9 @@ static void send_unoccupied_clients(Client *clients, Client sender,
           sizeof(message) - strlen(message) - 1);
 
   for (i = 0; i < actual; i++) {
-    if (clients[i].status == Unocupied && clients[i].sock != sender.sock) {
+    if (clients[i].player->status == Unocupied && clients[i].sock != sender.sock) {
       strncat(message, "\t- ", sizeof(message) - strlen(message) - 1);
-      strncat(message, clients[i].name, sizeof(message) - strlen(message) - 1);
+      strncat(message, clients[i].player->name, sizeof(message) - strlen(message) - 1);
       strncat(message, "\n", sizeof(message) - strlen(message) - 1);
     }
   }
@@ -255,16 +267,16 @@ static void send_request_challenge(Client* sender, char* receiver, Client* clien
   }
   else {   //Comment on différencie les clients? par le sock ou le nom. En vrai pareil parcqu'on retrouve la personne avec son nom donc nom unique
     strncpy(message, "Challenge request send to : ", sizeof(message) - strlen(message) - 1);
-    strncat(message, pClient->name, sizeof(message) - strlen(message) - 1);
+    strncat(message, pClient->player->name, sizeof(message) - strlen(message) - 1);
     write_client(sender->sock, message);
 
     message[0] = 0;
-    strncpy(message, sender->name, sizeof(message) - strlen(message) - 1);
+    strncpy(message, sender->player->name, sizeof(message) - strlen(message) - 1);
     strncat(message, " challenge you \n Press Y to accept, N to reject", sizeof(message) - strlen(message) - 1);
     write_client(pClient->sock, message);
 
-    pClient->status = Waiting;
-    sender->status = Waiting;
+    pClient->player->status = Waiting;
+    sender->player->status = Waiting;
   }
   
 }
@@ -273,7 +285,7 @@ static void send_welcome_message(Client client){
   char message[BUF_SIZE];
   message[0] = 0;
   strncpy(message, "Bonjour ", sizeof(message) - strlen(message) - 1);
-  strncat(message, client.name, sizeof(message) - strlen(message) - 1);
+  strncat(message, client.player->name, sizeof(message) - strlen(message) - 1);
   strncat(message, "! Bienvenue sur le meilleur seveur de awale. Içi, une seule règle, s'amuser!", sizeof(message) - strlen(message) - 1);
   write_client(client.sock, message);
 }
@@ -283,7 +295,7 @@ static Client* is_client_unocupied(Client* clients, char* client, int actual){
   Client clientTmp;
   for(position=0; position<actual;position++){
     clientTmp = clients[position];
-    if (strcmp(client,clientTmp.name)==0 && clientTmp.status == Unocupied){
+    if (strcmp(client,clientTmp.player->name)==0 && clientTmp.player->status == Unocupied){
       return &clients[position];
     }
   }
@@ -292,7 +304,7 @@ static Client* is_client_unocupied(Client* clients, char* client, int actual){
 
 static void afficher_clients(int taille, Client* clients){
   for (int i=0; i<taille; i++){
-    printf("nom : %s, status : %d\n", clients[i].name, clients[i].status);
+    printf("nom : %s, status : %d\n", clients[i].player->name, clients[i].player->status);
   }
 }
 
