@@ -137,6 +137,13 @@ static void afficher_jeu(jeu_t jeu){
     printf("Score du J2 : %d \n", jeu.j2Score);
 }
 
+static void afficher_player(Player player){
+  printf("Name : %s\n", player.name);
+  printf("Bio : %s\n", player.bio);
+  printf("Nombre de victoires : %d\n", player.gamesWon);
+  printf("Nombre de games jouées : %d", player.gamePlayed);
+}
+
 static void afficher_buffer(char* buffer, int n){
   if (n > 0) {
     if (buffer[0] == '0') {
@@ -152,11 +159,17 @@ static void afficher_buffer(char* buffer, int n){
       } else {
         fprintf(stderr, "Paquet jeu_t incomplet (%d/%zu)\n", n - 1, sizeof(jeu_t));
       }
+    } else if (buffer[0] == '2') {
+      //On peut pas tester la taille minimal parcque taille dépend de la taille de la bio et du name (ou alors faut prendre la taille sans bio et sans name)
+        Player player;
+        memcpy(&player, buffer + 1, sizeof(Player));
+        afficher_player(player);
     } else {
       puts(buffer);
     }
   }
 }
+
 
 int main(int argc, char **argv) {
   if (argc < 2) {

@@ -18,6 +18,7 @@ void send_to_client_text(Client *client, const char *message) {
     perror("send()");
     exit(errno);
   }
+  free(buf);
 }
 
 void send_to_client_game(Client *client, jeu_t *game) {
@@ -35,6 +36,25 @@ void send_to_client_game(Client *client, jeu_t *game) {
     perror("send()");
     exit(errno);
   }
+  free(buf);
+}
+
+void send_to_client_player(Client *client, Player *player) {
+  size_t len = sizeof(Player);
+  char *buf = malloc(len + 1);
+  if (!buf) {
+    perror("malloc");
+    exit(errno);
+  }
+
+  buf[0] = '2';
+  memcpy(buf + 1, player, len);
+
+  if (send(client->sock, buf, sizeof(Player) + 1, 0) < 0) {
+    perror("send()");
+    exit(errno);
+  }
+  free(buf);
 }
 
 // Fonctions du prof

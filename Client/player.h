@@ -1,8 +1,7 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "constants.h"
-#include "types.h"
+#include "../Serveur/constants.h"
 
 enum status_player {
   Unocupied, // 0
@@ -20,8 +19,8 @@ typedef struct {
   int gamePlayed;
   int gamesWon;
   enum status_player status;
-  char bio[BIO_SIZE];  //Obligé d'avoir un tableau et pas un pointeur sans taille fixe sinon on sait pas comment le lire coté client
-  SOCKET opponent_socket; //-1 si pas de game
+  char bio[BIO_SIZE];
+  int opponent_socket; //-1 si pas de game
 } Player;
 
-#endif /* guard */
+#endif

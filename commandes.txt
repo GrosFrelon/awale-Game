@@ -1,2 +1,3 @@
 /users -> liste des joueurs connectés
 /games -> liste des parties en cours
+/me -> infos on me 

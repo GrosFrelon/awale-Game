@@ -32,6 +32,7 @@ typedef struct in_addr IN_ADDR;
 
 #define BUF_SIZE 1024
 #include "jeu.h"
+#include "player.h"
 
 static void init(void);
 static void end(void);
@@ -42,5 +43,6 @@ static int read_server(SOCKET sock, char *buffer);
 static void write_server(SOCKET sock, const char *buffer);
 static void afficher_jeu(jeu_t jeu);
 static void afficher_buffer(char *buffer, int n);
+static void afficher_player(Player player);
 
 #endif /* guard */

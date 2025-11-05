@@ -216,6 +216,8 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
       }
       send_request_challenge(sender, receiver_name, clients, actual,
                              list_games);
+    } else if (strncmp(buffer, "/me", 3) == 0){
+      send_to_client_player(sender, sender->player);
     } else {
       send_to_client_text(sender, "bad command");
     }
@@ -385,17 +387,15 @@ static void handle_bio_response(Client* sender, char* buffer){
 }
 
 static void handle_writting_bio(Client* sender,char* buffer){
-  size_t len = strcspn(buffer, "\r\n");
-  char *bio = malloc(len + 1);
-  if (!bio) return;
+  size_t len = strcspn(buffer, "\r\n"); // longueur sans fin de ligne
 
-  memcpy(bio, buffer, len);
-  bio[len] = '\0';
-
-  if (sender->player->bio) {
-    free(sender->player->bio);
+  if (len >= sizeof(sender->player->bio)) {
+    len = sizeof(sender->player->bio) - 1; // éviter le dépassement
   }
-  sender->player->bio = bio;
+
+  memcpy(sender->player->bio, buffer, len);
+  sender->player->bio[len] = '\0';
+
   sender->player->status = Unocupied;
 
   printf("bio : %s\n", sender->player->bio);

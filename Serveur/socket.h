@@ -24,3 +24,4 @@ int init_connection(void);
 int read_client(SOCKET sock, char *buffer);
 void end_connection(int sock);
 void clear_clients(Client *clients, int actual);
+void send_to_client_player(Client *client, Player *player);
