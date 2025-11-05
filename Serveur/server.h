@@ -65,5 +65,7 @@ static void handle_challenge_response(Client* sender, Client* opponent, char* bu
 static void handle_game_move(Client* sender,char* buffer);
 static Client *find_client_by_socket(SOCKET sock, Client *clients,
                                    int nb_client);
+static void handle_writting_bio(Client* sender,char* buffer);
+static void handle_bio_response(Client* sender, char* buffer);
 
 #endif /* guard */

@@ -129,16 +129,27 @@ static void app(void) {
             remove_client(clients, i, &actual);
           } else {
             Client *sender = &clients[i];
-            if (sender->player->status == Waiting_for_opponent ||
-                sender->player->status == Challenge_pending) {
-              Client *opponent = find_client_by_socket(
-                  sender->player->opponent_socket, clients, actual);
-              handle_challenge_response(sender, opponent, buffer, clients,
-                                        list_games);
-            } else if (sender->player->status == Unocupied) {
-              analyse_command(&clients[i], buffer, clients, actual, list_games);
-            } else if (sender->player->status == Ingame) {
+            switch (sender->player->status)
+            {
+            case Waiting_for_opponent:
+            case Challenge_pending:
+              Client* opponent = find_client_by_socket(sender->player->opponent_socket, clients, actual);
+              handle_challenge_response(sender, opponent ,buffer, clients, list_games);
+              break;
+            case Unocupied:
+               analyse_command(&clients[i], buffer, clients, actual, list_games);
+              break;
+            case Ingame:
               handle_game_move(sender, buffer);
+              break;
+            case Waiting_for_conf_bio:
+              handle_bio_response(sender, buffer);
+              break;
+            case Writting_bio:
+              handle_writting_bio(sender, buffer);
+              break;
+            default:
+              break;
             }
           }
           break;
@@ -255,6 +266,8 @@ static void handle_challenge_response(Client *sender, Client *opponent,
     message[0] = 0;
     sprintf(message, "%s  refused the challenge\n", sender->player->name);
     send_to_client_text(opponent, message);
+    sprintf(message, "You  refused the challenge\n");
+    send_to_client_text(sender, message);
     opponent->player->status = Unocupied;
     sender->player->status = Unocupied;
   }
@@ -355,8 +368,38 @@ static void send_welcome_message(Client *client, int first_co) {
             "\nC'est votre première fois içi, voulez vous vous écrire une bio? "
             "(Oui : Y, Non : N)",
             sizeof(message) - strlen(message) - 1);
+    client->player->status = Waiting_for_conf_bio;
   }
   send_to_client_text(client, message);
+}
+
+static void handle_bio_response(Client* sender, char* buffer){
+  if(strcmp(buffer, "Y")==0 || strcmp(buffer, "y")==0){
+    sender->player->status = Writting_bio;
+    send_to_client_text(sender, "Votre bio : ");
+  }
+  else if ((strcmp(buffer, "N")==0 || strcmp(buffer, "n")==0)){
+    sender->player->status = Unocupied;
+    send_to_client_text(sender, "You don't have a bio ;(");
+  }
+}
+
+static void handle_writting_bio(Client* sender,char* buffer){
+  size_t len = strcspn(buffer, "\r\n");
+  char *bio = malloc(len + 1);
+  if (!bio) return;
+
+  memcpy(bio, buffer, len);
+  bio[len] = '\0';
+
+  if (sender->player->bio) {
+    free(sender->player->bio);
+  }
+  sender->player->bio = bio;
+  sender->player->status = Unocupied;
+
+  printf("bio : %s\n", sender->player->bio);
+  send_to_client_text(sender, "Bio enregistrée.");
 }
 
 static Client *is_client_unocupied(Client *clients, char *client, int actual) {

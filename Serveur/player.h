@@ -8,7 +8,9 @@ enum status_player {
   Unocupied, // 0
   Ingame,    // 1
   Waiting_for_opponent,    // 2  Le joueur attend que l'adversaire valide
-  Challenge_pending  //3  Le joueur dit yes or no
+  Challenge_pending,  //3  Le joueur dit yes or no
+  Waiting_for_conf_bio,  //4  Attend le Y or N pour la bio
+  Writting_bio   //5 attend de recevoir sa string de bio
 };
 
 typedef struct {
