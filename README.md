@@ -22,6 +22,10 @@ Une fois le challenge accepté, ça lance une partie et les joueurs ne sont plus
 /games -> liste des parties en cours
 /challenge {name_online_player}
 
+/sign-in
+/login
+/sign-out
+
 ## Questions
 
 Comment on stocke les clients (joueurs dans le serveurs)

@@ -1,12 +1,12 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "server.h"
+#include "constants.h"
 
 enum status_player {
-  Unocupied,  //0
-  Ingame,  //1
-  Waiting   //2
+  Unocupied, // 0
+  Ingame,    // 1
+  Waiting    // 2
 };
 
 typedef struct {
@@ -16,7 +16,7 @@ typedef struct {
   int gamePlayed;
   int gamesWon;
   enum status_player status;
-  char* bio;
+  char *bio;
 } Player;
 
 #endif /* guard */

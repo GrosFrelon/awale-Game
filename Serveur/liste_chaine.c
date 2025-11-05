@@ -1,6 +1,5 @@
-#include <stdlib.h>
 #include "liste_chaine.h"
-
+#include <stdlib.h>
 
 // void afficher() {
 //   printf("affichage de la liste:\n");
@@ -25,12 +24,12 @@ void create_game(Game *game, game_node *list_games) {
   list_games = node;
 }
 
-void create_client(Client *client, client_node *list_clients) {
-  client_node *node = malloc(sizeof(client_node));
-  node->client = client;
-  node->next = list_clients;
-  list_clients = node;
-}
+// void create_client(Client *client, client_node *list_clients) {
+//   client_node *node = malloc(sizeof(client_node));
+//   node->client = client;
+//   node->next = list_clients;
+//   list_clients = node;
+// }
 
 // void rechercher() {
 //   int nb;
@@ -82,29 +81,29 @@ void delete_game(Game *game, game_node *list_games) {
   }
 }
 
-void delete_client(Client *client, client_node *list_clients) {
-  if (list_clients->client == client) // Première valeur
-  {
-    client_node *next = list_clients->next;
-    free(list_clients);
-    list_clients = next;
-  }
+// void delete_client(Client *client, client_node *list_clients) {
+//   if (list_clients->client == client) // Première valeur
+//   {
+//     client_node *next = list_clients->next;
+//     free(list_clients);
+//     list_clients = next;
+//   }
 
-  client_node *local_list = list_clients;
+//   client_node *local_list = list_clients;
 
-  while (1) {
-    if (local_list != NULL && local_list->next != NULL) {
-      if (local_list->next->client == client) {
-        client_node *next_client_node = local_list->next->next;
-        free(local_list->next);
-        local_list->next = next_client_node;
-      } else // si on a enlevé une case, il ne faut pas avancer car c'est la
-             // suite de la liste qui s'est "rapprochée"
-      {
-        local_list = local_list->next;
-      }
-    } else {
-      break;
-    }
-  }
-}
+//   while (1) {
+//     if (local_list != NULL && local_list->next != NULL) {
+//       if (local_list->next->client == client) {
+//         client_node *next_client_node = local_list->next->next;
+//         free(local_list->next);
+//         local_list->next = next_client_node;
+//       } else // si on a enlevé une case, il ne faut pas avancer car c'est la
+//              // suite de la liste qui s'est "rapprochée"
+//       {
+//         local_list = local_list->next;
+//       }
+//     } else {
+//       break;
+//     }
+//   }
+// }

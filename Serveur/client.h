@@ -2,10 +2,11 @@
 #define CLIENT_H
 
 #include "player.h"
+#include "types.h"
 
 typedef struct {
   SOCKET sock;
-  Player* player;
+  Player *player;
 } Client;
 
 #endif /* guard */

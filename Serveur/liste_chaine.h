@@ -1,8 +1,8 @@
 #ifndef LISTE_CHAINE_H
 #define LISTE_CHAINE_H
 
-#include "game.h"
 #include "client.h"
+#include "game.h"
 
 typedef struct _client_node {
   Client *client;
