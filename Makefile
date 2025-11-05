@@ -1,3 +1,6 @@
+.PHONY: all
+all: server.app client.app
+
 server.app: Serveur/awale.o Serveur/liste_chaine.o Serveur/server.o Serveur/socket.o
 	gcc -o server.app Serveur/awale.o Serveur/liste_chaine.o Serveur/server.o Serveur/socket.o
 
