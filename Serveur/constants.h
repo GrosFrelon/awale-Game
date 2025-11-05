@@ -3,3 +3,4 @@
 #define MAX_CLIENTS 100
 
 #define BUF_SIZE 1024
+#define NAME_SIZE 50

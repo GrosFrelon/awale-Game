@@ -105,7 +105,7 @@ static void app(void) {
         p->gamesWon = 0;
         p->status = Unocupied;
         p->id = id++;
-        strncpy(p->name, buffer, BUF_SIZE - 1);
+        strncpy(p->name, buffer, NAME_SIZE);
         add_player(&players, p, &nombre_player, &taille_liste_player);
         fist_co = 1;
       }
