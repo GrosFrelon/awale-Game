@@ -128,11 +128,11 @@ static void afficher_jeu(jeu_t jeu){
     for(int i=0; i<6; i++){
         printf("%d ", jeu.plateau[i]);
     }
-    printf("\n");
+    printf("  <- ligne J1\n");
     for(int i=11; i>5; i--){
         printf("%d ", jeu.plateau[i]);
     }
-    printf("\n");
+    printf("  <- ligne J2\n");
     printf("Score du J1 : %d \n", jeu.j1Score);
     printf("Score du J2 : %d \n", jeu.j2Score);
 }

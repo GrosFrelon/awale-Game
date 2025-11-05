@@ -5,6 +5,12 @@
 #include <string.h>
 
 void send_to_client_text(Client *client, const char *message) {
+  size_t len = strlen(message);
+  char *buf = malloc(len + 1);
+  if (!buf) { perror("malloc"); exit(errno); }
+
+  buf[0] = '0';
+  memcpy(buf + 1, message, len);
   if (send(client->sock, message, strlen(message), 0) < 0) {
     perror("send()");
     exit(errno);
@@ -12,6 +18,13 @@ void send_to_client_text(Client *client, const char *message) {
 }
 
 void send_to_client_game(Client *client, jeu_t *game) {
+  size_t len = sizeof(jeu_t);
+  char *buf = malloc(len + 1);
+  if (!buf) { perror("malloc"); exit(errno); }
+
+  buf[0] = '1';
+  memcpy(buf + 1, game, len);
+
   if (send(client->sock, game, sizeof(jeu_t), 0) < 0) {
     perror("send()");
     exit(errno);

@@ -262,7 +262,8 @@ static void start_game(Client *client1, Client *client2,
 
   create_game(game, list_games);
 
-  afficher_jeu(*jeu, client1, client2);
+  send_to_client_game(client1, jeu);
+  send_to_client_game(client2, jeu);
 
   srand(time(NULL));
   int player = (rand() % 2);
@@ -270,17 +271,18 @@ static void start_game(Client *client1, Client *client2,
 
   while (jeu->j1Score < 24 || jeu->j2Score < 24) {
     printf("coup pour le joueur %d", player + 1);
-    if (player + 1 == 1) {
-      send_to_client_text(client1, "C'est votre tour, donnez le numéro de la "
-                                   "case que vous voulez jouer -> ");
-      send_to_client_text(client2, "Ce n'est pas votre tour...\n");
-      read_client(client1->sock, buffer);
-    } else {
-      send_to_client_text(client1, "Ce n'est pas votre tour...\n");
-      send_to_client_text(client2, "C'est votre tour, donnez le numéro de la "
-                                   "case que vous voulez jouer -> ");
-      read_client(client2->sock, buffer);
-    }
+    positionDemande = 0;
+      if (player + 1 == 1) {
+        send_to_client_text(client1, "C'est votre tour, donnez le numéro de la "
+                                    "case que vous voulez jouer -> ");
+        send_to_client_text(client2, "Ce n'est pas votre tour...\n");
+        read_client(client1->sock, buffer);
+      } else {
+        send_to_client_text(client1, "Ce n'est pas votre tour...\n");
+        send_to_client_text(client2, "C'est votre tour, donnez le numéro de la "
+                                    "case que vous voulez jouer -> ");
+        read_client(client2->sock, buffer);
+      }
     sscanf(buffer, "%d", &positionDemande);
     while (appliquerCoup(player, positionDemande, jeu)) {
       if (player + 1 == 1) {
