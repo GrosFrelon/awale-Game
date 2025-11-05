@@ -139,13 +139,6 @@ static void app(void) {
   end_connection(sock);
 }
 
-// static void clear_clients(Client *clients, int actual) {
-//   int i = 0;
-//   for (i = 0; i < actual; i++) {
-//     closesocket(clients[i].sock);
-//   }
-// }
-
 static void remove_client(Client *clients, int to_remove, int *actual) {
   /* we remove the client in the array */
   memmove(clients + to_remove, clients + to_remove + 1,
@@ -165,25 +158,6 @@ static void add_player(Player ***players, Player *player, int *nombre_player,
   (*players)[*nombre_player] = player;
   (*nombre_player)++;
 }
-
-// static void send_message_to_all_clients(Client *clients, Client sender,
-//                                         int actual, const char *buffer,
-//                                         char from_server) {
-//   int i = 0;
-//   char message[BUF_SIZE];
-//   message[0] = 0;
-//   for (i = 0; i < actual; i++) {
-//     /* we don't send message to the sender */
-//     if (sender.sock != clients[i].sock) {
-//       if (from_server == 0) {
-//         strncpy(message, sender.player->name, BUF_SIZE - 1);
-//         strncat(message, " : ", sizeof message - strlen(message) - 1);
-//       }
-//       strncat(message, buffer, sizeof message - strlen(message) - 1);
-//       write_client(clients[i].sock, message);
-//     }
-//   }
-// }
 
 static void send_unoccupied_clients(Client *clients, Client *sender,
                                     int actual) {
@@ -205,55 +179,6 @@ static void send_unoccupied_clients(Client *clients, Client *sender,
   }
   send_to_client_text(sender, message);
 }
-
-// static int init_connection(void) {
-//   SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
-//   SOCKADDR_IN sin = {0};
-
-//   if (sock == INVALID_SOCKET) {
-//     perror("socket()");
-//     exit(errno);
-//   }
-
-//   sin.sin_addr.s_addr = htonl(INADDR_ANY);
-//   sin.sin_port = htons(PORT);
-//   sin.sin_family = AF_INET;
-
-//   if (bind(sock, (SOCKADDR *)&sin, sizeof sin) == SOCKET_ERROR) {
-//     perror("bind()");
-//     exit(errno);
-//   }
-
-//   if (listen(sock, MAX_CLIENTS) == SOCKET_ERROR) {
-//     perror("listen()");
-//     exit(errno);
-//   }
-
-//   return sock;
-// }
-
-// static void end_connection(int sock) { closesocket(sock); }
-
-// static int read_client(SOCKET sock, char *buffer) {
-//   int n = 0;
-
-//   if ((n = recv(sock, buffer, BUF_SIZE - 1, 0)) < 0) {
-//     perror("recv()");
-//     /* if recv error we disonnect the client */
-//     n = 0;
-//   }
-
-//   buffer[n] = 0;
-
-//   return n;
-// }
-
-// static void write_client(SOCKET sock, const char *buffer) {
-//   if (send(sock, buffer, strlen(buffer), 0) < 0) {
-//     perror("send()");
-//     exit(errno);
-//   }
-// }
 
 static void analyse_command(Client *sender, const char *buffer, Client *clients,
                             int actual, game_node *list_games) {
