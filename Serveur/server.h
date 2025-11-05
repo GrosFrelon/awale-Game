@@ -52,7 +52,7 @@ static void send_request_challenge(Client *sender, char *receiver,
                                    Client *clients, int actual,
                                    game_node *list_games);
 static void start_game(Client *client1, Client *client2, game_node *list_games);
-static void send_welcome_message(Client client, int first_co);
+static void send_welcome_message(Client *client, int first_co);
 static Client *is_client_unocupied(Client *clients, char *client, int actual);
 static void afficher_clients(int taille, Client *clients);
 static void add_player(Player ***players, Player *player, int *nombre_player,

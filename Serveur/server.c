@@ -114,7 +114,7 @@ static void app(void) {
       clients[actual] = c;
 
       actual++;
-      send_welcome_message(c, fist_co);
+      send_welcome_message(&c, fist_co);
     } else {
       int i = 0;
       for (i = 0; i < actual; i++) {
@@ -376,7 +376,7 @@ static void start_game(Client *client1, Client *client2,
   }
 }
 
-static void send_welcome_message(Client client, int first_co) {
+static void send_welcome_message(Client *client, int first_co) {
   char message[BUF_SIZE];
   message[0] = 0;
   sprintf(message,
