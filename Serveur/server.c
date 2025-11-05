@@ -129,14 +129,15 @@ static void app(void) {
             remove_client(clients, i, &actual);
           } else {
             Client *sender = &clients[i];
-            if(sender->player->status == Waiting_for_opponent || sender->player->status == Challenge_pending){
-              Client* opponent = find_client_by_socket(sender->player->opponent_socket, clients, actual);
-              handle_challenge_response(sender, opponent ,buffer, clients, list_games);
-            }
-            else if (sender->player->status == Unocupied) {
+            if (sender->player->status == Waiting_for_opponent ||
+                sender->player->status == Challenge_pending) {
+              Client *opponent = find_client_by_socket(
+                  sender->player->opponent_socket, clients, actual);
+              handle_challenge_response(sender, opponent, buffer, clients,
+                                        list_games);
+            } else if (sender->player->status == Unocupied) {
               analyse_command(&clients[i], buffer, clients, actual, list_games);
-            }
-            else if (sender->player->status == Ingame){
+            } else if (sender->player->status == Ingame) {
               handle_game_move(sender, buffer);
             }
           }
@@ -240,13 +241,16 @@ static void send_request_challenge(Client *sender, char *receiver,
   }
 }
 
-static void handle_challenge_response(Client* sender, Client* opponent, char* buffer, Client* clients, game_node* list_games){
+static void handle_challenge_response(Client *sender, Client *opponent,
+                                      char *buffer, Client *clients,
+                                      game_node *list_games) {
 
   char message[BUF_SIZE];
   message[0] = 0;
 
-  if ((strcmp(buffer, "Y") == 0 || strcmp(buffer, "y") == 0) && sender->player->status == Challenge_pending) {
-      start_game(opponent, sender, list_games);
+  if ((strcmp(buffer, "Y") == 0 || strcmp(buffer, "y") == 0) &&
+      sender->player->status == Challenge_pending) {
+    start_game(opponent, sender, list_games);
   } else if (strcmp(buffer, "N") == 0 || strcmp(buffer, "n") == 0) {
     message[0] = 0;
     sprintf(message, "%s  refused the challenge\n", sender->player->name);
@@ -261,8 +265,8 @@ static void start_game(Client *client1, Client *client2,
   char message[BUF_SIZE];
   char buffer[BUF_SIZE];
   message[0] = 0;
-  sprintf(message, "New game started between %s and %s", client1->player->name,
-          client2->player->name);
+  sprintf(message, "New game started between %s (Player 1) and %s (Player 2)",
+          client1->player->name, client2->player->name);
   send_to_client_text(client1, message);
   send_to_client_text(client2, message);
   client1->player->status = Ingame;
@@ -288,27 +292,28 @@ static void start_game(Client *client1, Client *client2,
   int positionDemande = 0;
 
   if (player + 1 == 1) {
-      send_to_client_text(client1, "C'est votre tour, donnez le numéro de la "
-                                  "case que vous voulez jouer -> ");
-      send_to_client_text(client2, "Ce n'est pas votre tour...\n");
+    send_to_client_text(client1, "C'est votre tour, donnez le numéro de la "
+                                 "case que vous voulez jouer -> ");
+    send_to_client_text(client2, "Ce n'est pas votre tour...\n");
   } else {
     send_to_client_text(client1, "Ce n'est pas votre tour...\n");
     send_to_client_text(client2, "C'est votre tour, donnez le numéro de la "
-                                "case que vous voulez jouer -> ");
+                                 "case que vous voulez jouer -> ");
   }
-
 
   // while (jeu->j1Score < 24 || jeu->j2Score < 24) {
   //   printf("coup pour le joueur %d", player + 1);
   //   positionDemande = 0;
   //     if (player + 1 == 1) {
-  //       send_to_client_text(client1, "C'est votre tour, donnez le numéro de la "
+  //       send_to_client_text(client1, "C'est votre tour, donnez le numéro de
+  //       la "
   //                                   "case que vous voulez jouer -> ");
   //       send_to_client_text(client2, "Ce n'est pas votre tour...\n");
   //       read_client(client1->sock, buffer);
   //     } else {
   //       send_to_client_text(client1, "Ce n'est pas votre tour...\n");
-  //       send_to_client_text(client2, "C'est votre tour, donnez le numéro de la "
+  //       send_to_client_text(client2, "C'est votre tour, donnez le numéro de
+  //       la "
   //                                   "case que vous voulez jouer -> ");
   //       read_client(client2->sock, buffer);
   //     }
@@ -317,12 +322,14 @@ static void start_game(Client *client1, Client *client2,
   //     if (player + 1 == 1) {
   //       send_to_client_text(
   //           client1,
-  //           "Le coup n'est pas autorisé, restez focus ! Nouvelle chance -> ");
+  //           "Le coup n'est pas autorisé, restez focus ! Nouvelle chance ->
+  //           ");
   //       read_client(client1->sock, buffer);
   //     } else {
   //       send_to_client_text(
   //           client2,
-  //           "Le coup n'est pas autorisé, restez focus ! Nouvelle chance -> ");
+  //           "Le coup n'est pas autorisé, restez focus ! Nouvelle chance ->
+  //           ");
   //       read_client(client2->sock, buffer);
   //     }
   //     sscanf(buffer, "%d", &positionDemande);
@@ -332,8 +339,8 @@ static void start_game(Client *client1, Client *client2,
   //}
 }
 
-static void handle_game_move(Client* sender,char* buffer){
-  printf("%s joue : %s\n",sender->player->name, buffer);
+static void handle_game_move(Client *sender, char *buffer) {
+  printf("%s joue : %s\n", sender->player->name, buffer);
 }
 
 static void send_welcome_message(Client *client, int first_co) {
@@ -389,7 +396,7 @@ static Player *find_player_by_name(char *buffer, Player **players,
 }
 
 static Client *find_client_by_socket(SOCKET sock, Client *clients,
-                                   int nb_client) {
+                                     int nb_client) {
   for (int i = 0; i < nb_client; i++) {
     if (sock == clients[i].sock) {
       return &clients[i];
