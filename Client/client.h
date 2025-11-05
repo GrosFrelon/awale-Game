@@ -7,12 +7,12 @@
 
 // #elif defined (linux)
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <unistd.h> /* close */
 #include <netdb.h> /* gethostbyname */
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h> /* close */
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define closesocket(s) close(s)
@@ -27,11 +27,11 @@ typedef struct in_addr IN_ADDR;
 
 // #endif
 
-#define CRLF     "\r\n"
-#define PORT     1977
+#define CRLF "\r\n"
+#define PORT 1977
 
 #define BUF_SIZE 1024
-#include "../awale.h"
+#include "jeu.h"
 
 static void init(void);
 static void end(void);
@@ -41,6 +41,6 @@ static void end_connection(int sock);
 static int read_server(SOCKET sock, char *buffer);
 static void write_server(SOCKET sock, const char *buffer);
 static void afficher_jeu(jeu_t jeu);
-static void afficher_buffer(char* buffer, int n);
+static void afficher_buffer(char *buffer, int n);
 
 #endif /* guard */
