@@ -2,11 +2,13 @@
 #define PLAYER_H
 
 #include "constants.h"
+#include "types.h"
 
 enum status_player {
   Unocupied, // 0
   Ingame,    // 1
-  Waiting    // 2
+  Waiting_for_opponent,    // 2  Le joueur attend que l'adversaire valide
+  Challenge_pending  //3  Le joueur dit yes or no
 };
 
 typedef struct {
@@ -17,6 +19,7 @@ typedef struct {
   int gamesWon;
   enum status_player status;
   char *bio;
+  SOCKET opponent_socket; //-1 si pas de game
 } Player;
 
 #endif /* guard */

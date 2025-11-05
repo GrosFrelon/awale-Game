@@ -61,5 +61,9 @@ static void afficher_players(int taille, Player **players);
 static Player *find_player_by_name(char *buffer, Player **players,
                                    int nb_players);
 static void afficher_jeu(jeu_t jeu, Client *client1, Client *client2);
+static void handle_challenge_response(Client* sender, Client* opponent, char* buffer, Client* clients, game_node* list_games);
+static void handle_game_move(Client* sender,char* buffer);
+static Client *find_client_by_socket(SOCKET sock, Client *clients,
+                                   int nb_client);
 
 #endif /* guard */

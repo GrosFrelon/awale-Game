@@ -105,6 +105,7 @@ static void app(void) {
         p->gamesWon = 0;
         p->status = Unocupied;
         p->id = id++;
+        p->opponent_socket = -1;
         strncpy(p->name, buffer, NAME_SIZE);
         add_player(&players, p, &nombre_player, &taille_liste_player);
         fist_co = 1;
@@ -127,7 +128,17 @@ static void app(void) {
             closesocket(clients[i].sock);
             remove_client(clients, i, &actual);
           } else {
-            analyse_command(&clients[i], buffer, clients, actual, list_games);
+            Client *sender = &clients[i];
+            if(sender->player->status == Waiting_for_opponent || sender->player->status == Challenge_pending){
+              Client* opponent = find_client_by_socket(sender->player->opponent_socket, clients, actual);
+              handle_challenge_response(sender, opponent ,buffer, clients, list_games);
+            }
+            else if (sender->player->status == Unocupied) {
+              analyse_command(&clients[i], buffer, clients, actual, list_games);
+            }
+            else if (sender->player->status == Ingame){
+              handle_game_move(sender, buffer);
+            }
           }
           break;
         }
@@ -221,20 +232,27 @@ static void send_request_challenge(Client *sender, char *receiver,
             sender->player->name);
     send_to_client_text(pClient, message);
 
-    pClient->player->status = Waiting;
-    sender->player->status = Waiting;
+    pClient->player->status = Challenge_pending;
+    sender->player->status = Waiting_for_opponent;
 
-    char buffer[BUF_SIZE];
-    read_client(pClient->sock, buffer);
-    if (strcmp(buffer, "Y") == 0 || strcmp(buffer, "y") == 0) {
-      start_game(pClient, sender, list_games);
-    } else if (strcmp(buffer, "N") == 0 || strcmp(buffer, "n") == 0) {
-      message[0] = 0;
-      sprintf(message, "%s  refused the challenge\n", pClient->player->name);
-      send_to_client_text(sender, message);
-      pClient->player->status = Unocupied;
-      sender->player->status = Unocupied;
-    }
+    sender->player->opponent_socket = pClient->sock;
+    pClient->player->opponent_socket = sender->sock;
+  }
+}
+
+static void handle_challenge_response(Client* sender, Client* opponent, char* buffer, Client* clients, game_node* list_games){
+
+  char message[BUF_SIZE];
+  message[0] = 0;
+
+  if ((strcmp(buffer, "Y") == 0 || strcmp(buffer, "y") == 0) && sender->player->status == Challenge_pending) {
+      start_game(opponent, sender, list_games);
+  } else if (strcmp(buffer, "N") == 0 || strcmp(buffer, "n") == 0) {
+    message[0] = 0;
+    sprintf(message, "%s  refused the challenge\n", sender->player->name);
+    send_to_client_text(opponent, message);
+    opponent->player->status = Unocupied;
+    sender->player->status = Unocupied;
   }
 }
 
@@ -250,7 +268,7 @@ static void start_game(Client *client1, Client *client2,
   client1->player->status = Ingame;
   client2->player->status = Ingame;
 
-  jeu_t *jeu = initGame(1);
+  jeu_t *jeu = initGame(-1);
 
   Game *game = malloc(sizeof(Game));
   game->game_id = 0;
@@ -269,38 +287,53 @@ static void start_game(Client *client1, Client *client2,
   int player = (rand() % 2);
   int positionDemande = 0;
 
-  while (jeu->j1Score < 24 || jeu->j2Score < 24) {
-    printf("coup pour le joueur %d", player + 1);
-    positionDemande = 0;
-      if (player + 1 == 1) {
-        send_to_client_text(client1, "C'est votre tour, donnez le numéro de la "
-                                    "case que vous voulez jouer -> ");
-        send_to_client_text(client2, "Ce n'est pas votre tour...\n");
-        read_client(client1->sock, buffer);
-      } else {
-        send_to_client_text(client1, "Ce n'est pas votre tour...\n");
-        send_to_client_text(client2, "C'est votre tour, donnez le numéro de la "
-                                    "case que vous voulez jouer -> ");
-        read_client(client2->sock, buffer);
-      }
-    sscanf(buffer, "%d", &positionDemande);
-    while (appliquerCoup(player, positionDemande, jeu)) {
-      if (player + 1 == 1) {
-        send_to_client_text(
-            client1,
-            "Le coup n'est pas autorisé, restez focus ! Nouvelle chance -> ");
-        read_client(client1->sock, buffer);
-      } else {
-        send_to_client_text(
-            client2,
-            "Le coup n'est pas autorisé, restez focus ! Nouvelle chance -> ");
-        read_client(client2->sock, buffer);
-      }
-      sscanf(buffer, "%d", &positionDemande);
-    };
-    afficher_jeu(*jeu, client1, client2);
-    player = (player + 1) % 2;
+  if (player + 1 == 1) {
+      send_to_client_text(client1, "C'est votre tour, donnez le numéro de la "
+                                  "case que vous voulez jouer -> ");
+      send_to_client_text(client2, "Ce n'est pas votre tour...\n");
+  } else {
+    send_to_client_text(client1, "Ce n'est pas votre tour...\n");
+    send_to_client_text(client2, "C'est votre tour, donnez le numéro de la "
+                                "case que vous voulez jouer -> ");
   }
+
+
+  // while (jeu->j1Score < 24 || jeu->j2Score < 24) {
+  //   printf("coup pour le joueur %d", player + 1);
+  //   positionDemande = 0;
+  //     if (player + 1 == 1) {
+  //       send_to_client_text(client1, "C'est votre tour, donnez le numéro de la "
+  //                                   "case que vous voulez jouer -> ");
+  //       send_to_client_text(client2, "Ce n'est pas votre tour...\n");
+  //       read_client(client1->sock, buffer);
+  //     } else {
+  //       send_to_client_text(client1, "Ce n'est pas votre tour...\n");
+  //       send_to_client_text(client2, "C'est votre tour, donnez le numéro de la "
+  //                                   "case que vous voulez jouer -> ");
+  //       read_client(client2->sock, buffer);
+  //     }
+  //   sscanf(buffer, "%d", &positionDemande);
+  //   while (appliquerCoup(player, positionDemande, jeu)) {
+  //     if (player + 1 == 1) {
+  //       send_to_client_text(
+  //           client1,
+  //           "Le coup n'est pas autorisé, restez focus ! Nouvelle chance -> ");
+  //       read_client(client1->sock, buffer);
+  //     } else {
+  //       send_to_client_text(
+  //           client2,
+  //           "Le coup n'est pas autorisé, restez focus ! Nouvelle chance -> ");
+  //       read_client(client2->sock, buffer);
+  //     }
+  //     sscanf(buffer, "%d", &positionDemande);
+  //   };
+  //   afficher_jeu(*jeu, client1, client2);
+  //   player = (player + 1) % 2;
+  //}
+}
+
+static void handle_game_move(Client* sender,char* buffer){
+  printf("%s joue : %s\n",sender->player->name, buffer);
 }
 
 static void send_welcome_message(Client *client, int first_co) {
@@ -350,6 +383,16 @@ static Player *find_player_by_name(char *buffer, Player **players,
   for (int i = 0; i < nb_players; i++) {
     if (strcmp(buffer, players[i]->name) == 0) {
       return players[i];
+    }
+  }
+  return 0;
+}
+
+static Client *find_client_by_socket(SOCKET sock, Client *clients,
+                                   int nb_client) {
+  for (int i = 0; i < nb_client; i++) {
+    if (sock == clients[i].sock) {
+      return &clients[i];
     }
   }
   return 0;
