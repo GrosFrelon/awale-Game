@@ -5,6 +5,7 @@
 
 #include "client.h"
 
+
 static void init(void) {
 #ifdef WIN32
   WSADATA wsa;
@@ -66,7 +67,7 @@ static void app(const char *address, const char *name) {
         printf("Server disconnected !\n");
         break;
       }
-      puts(buffer);
+      afficher_buffer(buffer, n);
     }
   }
 
@@ -120,6 +121,40 @@ static void write_server(SOCKET sock, const char *buffer) {
   if (send(sock, buffer, strlen(buffer), 0) < 0) {
     perror("send()");
     exit(errno);
+  }
+}
+
+static void afficher_jeu(jeu_t jeu){
+    for(int i=0; i<6; i++){
+        printf("%d ", jeu.plateau[i]);
+    }
+    printf("\n");
+    for(int i=11; i>5; i--){
+        printf("%d ", jeu.plateau[i]);
+    }
+    printf("\n");
+    printf("Score du J1 : %d \n", jeu.j1Score);
+    printf("Score du J2 : %d \n", jeu.j2Score);
+}
+
+static void afficher_buffer(char* buffer, int n){
+  if (n > 0) {
+    if (buffer[0] == '0') {
+      if (n > 1) {
+        puts(buffer + 1);
+      }
+    } else if (buffer[0] == '1') {
+      // Données d’un jeu_t en binaire après l’indicateur
+      if (n - 1 >= (int)sizeof(jeu_t)) {
+        jeu_t jeu;
+        memcpy(&jeu, buffer + 1, sizeof(jeu_t));
+        afficher_jeu(jeu);
+      } else {
+        fprintf(stderr, "Paquet jeu_t incomplet (%d/%zu)\n", n - 1, sizeof(jeu_t));
+      }
+    } else {
+      puts(buffer);
+    }
   }
 }
 

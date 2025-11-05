@@ -1,11 +1,11 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#ifdef WIN32
+// #ifdef WIN32
 
-#include <winsock2.h>
+// #include <winsock2.h>
 
-#elif defined (linux)
+// #elif defined (linux)
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -21,16 +21,17 @@ typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 typedef struct in_addr IN_ADDR;
 
-#else
+// #else
 
-#error not defined for this platform
+// #error not defined for this platform
 
-#endif
+// #endif
 
 #define CRLF     "\r\n"
 #define PORT     1977
 
 #define BUF_SIZE 1024
+#include "../awale.h"
 
 static void init(void);
 static void end(void);
@@ -39,5 +40,7 @@ static int init_connection(const char *address);
 static void end_connection(int sock);
 static int read_server(SOCKET sock, char *buffer);
 static void write_server(SOCKET sock, const char *buffer);
+static void afficher_jeu(jeu_t jeu);
+static void afficher_buffer(char* buffer, int n);
 
 #endif /* guard */
