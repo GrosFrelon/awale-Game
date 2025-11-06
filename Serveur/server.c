@@ -197,8 +197,6 @@ static void connect_client_to_player(Client* sender, char* name, Client* clients
     sender->player = p;
   }
   send_welcome_message(sender, fist_co, player_already_co);
-  afficher_clients(nombre_client, clients);
-  afficher_players(*nombre_player, *players);
 }
 
 static void remove_client(Client *clients, int to_remove, int *actual) {
