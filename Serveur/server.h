@@ -52,7 +52,7 @@ static void send_request_challenge(Client *sender, char *receiver,
                                    Client *clients, int actual,
                                    game_node *list_games);
 static void start_game(Client *client1, Client *client2, game_node *list_games);
-static void send_welcome_message(Client *client, int first_co);
+static void send_welcome_message(Client *client, int first_co, int player_already_co);
 static Client *is_client_unocupied(Client *clients, char *client, int actual);
 static void afficher_clients(int taille, Client *clients);
 static void add_player(Player ***players, Player *player, int *nombre_player,
@@ -67,5 +67,8 @@ static Client *find_client_by_socket(SOCKET sock, Client *clients,
                                    int nb_client);
 static void handle_writting_bio(Client* sender,char* buffer);
 static void handle_bio_response(Client* sender, char* buffer);
+static int player_already_connected(Player* p, Client* clients, int actual);
+static void connect_client_to_player(Client* sender, char* name, Client* clients, Player*** players, int* nombre_player, int nombre_client, int *taille_liste_player, int id);
+static Player* initialize_player(char* name, Player*** players, int *nombre_player, int *taille_liste_player, int id);
 
 #endif /* guard */

@@ -97,25 +97,27 @@ static void app(void) {
       FD_SET(csock, &rdfs);
 
       int fist_co = 0;
-      Player *p = find_player_by_name(buffer, players, nombre_player);
-      if (p == 0) {
-        p = malloc(sizeof(Player));
-        p->elo = 0;
-        p->gamePlayed = 0;
-        p->gamesWon = 0;
-        p->status = Unocupied;
-        p->id = id++;
-        p->opponent_socket = -1;
-        strncpy(p->name, buffer, NAME_SIZE);
-        add_player(&players, p, &nombre_player, &taille_liste_player);
+      int player_already_co = 0;
+      Player *p = find_player_by_name(buffer, players, nombre_player);  
+      if (p != 0){
+        player_already_co = player_already_connected(p, clients, actual);
+      }
+      else {  //Si le nom est n'est associé à aucun players
+        p = initialize_player(buffer, &players, &nombre_player, &taille_liste_player,id);
+        id++;
         fist_co = 1;
       }
-
-      Client c = {.sock = csock, .player = p};
+      Client c;
+      if(!player_already_co){
+        c.sock = csock;
+        c.player = p;
+      } else {
+        c.sock = csock;
+        c.player = 0;
+      }
       clients[actual] = c;
-
       actual++;
-      send_welcome_message(&c, fist_co);
+      send_welcome_message(&c, fist_co, player_already_co);
     } else {
       int i = 0;
       for (i = 0; i < actual; i++) {
@@ -129,27 +131,32 @@ static void app(void) {
             remove_client(clients, i, &actual);
           } else {
             Client *sender = &clients[i];
-            switch (sender->player->status)
-            {
-            case Waiting_for_opponent:
-            case Challenge_pending:
-              Client* opponent = find_client_by_socket(sender->player->opponent_socket, clients, actual);
-              handle_challenge_response(sender, opponent ,buffer, clients, list_games);
-              break;
-            case Unocupied:
-               analyse_command(&clients[i], buffer, clients, actual, list_games);
-              break;
-            case Ingame:
-              handle_game_move(sender, buffer);
-              break;
-            case Waiting_for_conf_bio:
-              handle_bio_response(sender, buffer);
-              break;
-            case Writting_bio:
-              handle_writting_bio(sender, buffer);
-              break;
-            default:
-              break;
+            if(sender->player == 0){  //Si on a pas de player associé
+              connect_client_to_player(sender, buffer, clients, &players, &nombre_player, actual, &taille_liste_player, id);
+            }
+            else{
+              switch (sender->player->status)
+              {
+              case Waiting_for_opponent:
+              case Challenge_pending:
+                Client* opponent = find_client_by_socket(sender->player->opponent_socket, clients, actual);
+                handle_challenge_response(sender, opponent ,buffer, clients, list_games);
+                break;
+              case Unocupied:
+                analyse_command(&clients[i], buffer, clients, actual, list_games);
+                break;
+              case Ingame:
+                handle_game_move(sender, buffer);
+                break;
+              case Waiting_for_conf_bio:
+                handle_bio_response(sender, buffer);
+                break;
+              case Writting_bio:
+                handle_writting_bio(sender, buffer);
+                break;
+              default:
+                break;
+              }
             }
           }
           break;
@@ -160,6 +167,38 @@ static void app(void) {
 
   clear_clients(clients, actual);
   end_connection(sock);
+}
+
+static Player* initialize_player(char* name, Player*** players, int* nombre_player, int* taille_liste_player, int id){
+  Player* p = malloc(sizeof(Player));
+  p->elo = 0;
+  p->gamePlayed = 0;
+  p->gamesWon = 0;
+  p->status = Unocupied;
+  p->id = id++;
+  p->opponent_socket = -1;
+  strncpy(p->name, name, NAME_SIZE);
+  add_player(players, p, nombre_player, taille_liste_player);
+  return p;
+}
+
+static void connect_client_to_player(Client* sender, char* name, Client* clients, Player*** players, int* nombre_player, int nombre_client, int* taille_liste_player, int id){
+  int fist_co = 0;
+  int player_already_co = 0;
+  Player *p = find_player_by_name(name, *players, *nombre_player);  
+  if (p != 0){
+    player_already_co = player_already_connected(p, clients, nombre_client);
+  }
+  if (p == 0) {  //Si le nom est n'est associé à aucun players
+    p = initialize_player(name, players, nombre_player, taille_liste_player,id);
+    fist_co = 1;
+  }
+  if (!player_already_co){
+    sender->player = p;
+  }
+  send_welcome_message(sender, fist_co, player_already_co);
+  afficher_clients(nombre_client, clients);
+  afficher_players(*nombre_player, *players);
 }
 
 static void remove_client(Client *clients, int to_remove, int *actual) {
@@ -358,19 +397,24 @@ static void handle_game_move(Client *sender, char *buffer) {
   printf("%s joue : %s\n", sender->player->name, buffer);
 }
 
-static void send_welcome_message(Client *client, int first_co) {
+static void send_welcome_message(Client *client, int first_co, int player_already_co) {
   char message[BUF_SIZE];
   message[0] = 0;
-  sprintf(message,
-          "Bonjour %s ! Bienvenue sur le meilleur seveur de awale. Içi, une "
-          "seule règle : s'amuser !",
-          client->player->name);
-  if (first_co == 1) {
-    strncat(message,
-            "\nC'est votre première fois içi, voulez vous vous écrire une bio? "
-            "(Oui : Y, Non : N)",
-            sizeof(message) - strlen(message) - 1);
-    client->player->status = Waiting_for_conf_bio;
+  if(!player_already_co){
+    sprintf(message,
+            "Bonjour %s ! Bienvenue sur le meilleur seveur de awale. Içi, une "
+            "seule règle : s'amuser !",
+            client->player->name);
+    if (first_co == 1) {
+      strncat(message,
+              "\nC'est votre première fois içi, voulez vous vous écrire une bio? "
+              "(Oui : Y, Non : N)",
+              sizeof(message) - strlen(message) - 1);
+      client->player->status = Waiting_for_conf_bio;
+    }
+  }
+  else{
+    strcpy(message, "Ce player est déjà utilisé par un autre client...\nTester une prochaine fois ou avec un autre player : ");
   }
   send_to_client_text(client, message);
 }
@@ -398,7 +442,6 @@ static void handle_writting_bio(Client* sender,char* buffer){
 
   sender->player->status = Unocupied;
 
-  printf("bio : %s\n", sender->player->bio);
   send_to_client_text(sender, "Bio enregistrée.");
 }
 
@@ -415,16 +458,24 @@ static Client *is_client_unocupied(Client *clients, char *client, int actual) {
   return 0;
 }
 
+static int player_already_connected(Player* p, Client* clients, int actual){
+  for(int i = 0; i<actual; i++){
+    if (p == clients[i].player){
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static void afficher_clients(int taille, Client *clients) {
   for (int i = 0; i < taille; i++) {
-    printf("nom : %s, status : %d\n", clients[i].player->name,
-           clients[i].player->status);
+    printf("Client : socket : %d\n", clients[i].sock);
   }
 }
 
 static void afficher_players(int taille, Player **players) {
   for (int i = 0; i < taille; i++) {
-    printf("nom : %s, id : %d\n", players[i]->name, players[i]->id);
+    printf("Player : nom : %s, id : %d\n", players[i]->name, players[i]->id);
   }
 }
 
