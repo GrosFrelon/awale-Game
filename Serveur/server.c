@@ -40,11 +40,13 @@ static void app(void) {
   int max = sock;
   int nombre_player = 0;
   int taille_liste_player = 10;
-  int id = 0;
   /* an array for all clients and players */
   Client clients[MAX_CLIENTS];
   Player **players = malloc(taille_liste_player * sizeof(Player *));
   game_node *list_games = NULL;
+
+  int last_id_save = load_players(&players, &nombre_player, &taille_liste_player);
+  int id = last_id_save + 1;
 
   fd_set rdfs; // structure de données pour sauvegarder ce qu'on surveille
 
@@ -73,6 +75,7 @@ static void app(void) {
 
     /* something from standard input : i.e keyboard */
     if (FD_ISSET(STDIN_FILENO, &rdfs)) {
+      save_players(players, nombre_player, last_id_save);
       /* stop process when type on keyboard */
       break;
     } else if (FD_ISSET(sock, &rdfs)) {
@@ -103,8 +106,7 @@ static void app(void) {
         player_already_co = player_already_connected(p, clients, actual);
       }
       else {  //Si le nom est n'est associé à aucun players
-        p = initialize_player(buffer, &players, &nombre_player, &taille_liste_player,id);
-        id++;
+        p = initialize_player(buffer, &players, &nombre_player, &taille_liste_player,&id);
         fist_co = 1;
       }
       Client c;
@@ -132,7 +134,7 @@ static void app(void) {
           } else {
             Client *sender = &clients[i];
             if(sender->player == 0){  //Si on a pas de player associé
-              connect_client_to_player(sender, buffer, clients, &players, &nombre_player, actual, &taille_liste_player, id);
+              connect_client_to_player(sender, buffer, clients, &players, &nombre_player, actual, &taille_liste_player, &id);
             }
             else{
               switch (sender->player->status)
@@ -169,20 +171,21 @@ static void app(void) {
   end_connection(sock);
 }
 
-static Player* initialize_player(char* name, Player*** players, int* nombre_player, int* taille_liste_player, int id){
+static Player* initialize_player(char* name, Player*** players, int* nombre_player, int* taille_liste_player, int* id){
   Player* p = malloc(sizeof(Player));
   p->elo = 0;
   p->gamePlayed = 0;
   p->gamesWon = 0;
   p->status = Unocupied;
-  p->id = id++;
+  p->id = (*id)++;
   p->opponent_socket = -1;
   strncpy(p->name, name, NAME_SIZE);
+  strncpy(p->bio, " ", BIO_SIZE);  //Pour pouvoir parser plus simplement la save
   add_player(players, p, nombre_player, taille_liste_player);
   return p;
 }
 
-static void connect_client_to_player(Client* sender, char* name, Client* clients, Player*** players, int* nombre_player, int nombre_client, int* taille_liste_player, int id){
+static void connect_client_to_player(Client* sender, char* name, Client* clients, Player*** players, int* nombre_player, int nombre_client, int* taille_liste_player, int* id){
   int fist_co = 0;
   int player_already_co = 0;
   Player *p = find_player_by_name(name, *players, *nombre_player);  
@@ -495,6 +498,64 @@ static Client *find_client_by_socket(SOCKET sock, Client *clients,
     }
   }
   return 0;
+}
+
+static void save_players(Player** players, int nombre_player, int id){
+  Player* player_tmp;
+  FILE* file = fopen(SAVE_FILE, "a");
+  for (int i = 0; i<nombre_player; i++){
+    if (i>id){
+      player_tmp = players[i];
+      fprintf(file, "%d;", player_tmp->id);
+      fprintf(file, "%s;", player_tmp->name);
+      fprintf(file, "%s;", player_tmp->bio);
+      fprintf(file, "%d;", player_tmp->gamePlayed);
+      fprintf(file, "%d;", player_tmp->gamesWon);
+      fprintf(file, "%d;\n", player_tmp->elo);
+    }
+  }
+  fclose(file);
+}
+
+static int load_players(Player*** players, int* nombre_player, int* taille_liste){
+  FILE* file = fopen(SAVE_FILE, "r");
+  if (file == NULL) {
+    printf("Error: file pointer is null.");
+    exit(1);
+  }
+
+  int id=-1;  //Si on charge aucun player : aucun players du tout donc prochain player -> id=0
+  int maximum_line_length = sizeof(Player);
+  char lineBuffer[maximum_line_length];
+
+  while (fgets(lineBuffer, maximum_line_length, file)){
+    lineBuffer[strcspn(lineBuffer, "\r\n")] = '\0';
+    if (lineBuffer[0] == '\0'){continue;}
+
+    char* id_str = strtok(lineBuffer, ";");
+    char* name = strtok(NULL, ";");
+    char* bio = strtok(NULL, ";");
+    char* played_str = strtok(NULL, ";");
+    char* won_str = strtok(NULL, ";");
+    char* elo_str = strtok(NULL, ";");
+
+    Player* p = (Player*)malloc(sizeof(Player));
+    strncpy(p->name, name, NAME_SIZE);
+    strncpy(p->bio, bio, BIO_SIZE);
+    p->gamePlayed = atoi(played_str);
+    p->gamesWon = atoi(won_str);
+    p->elo = atoi(elo_str);
+    p->id = atoi(id_str);
+    p->status = Unocupied;
+    p->opponent_socket = -1;
+
+    add_player(players, p, nombre_player, taille_liste);
+
+    id = p->id;
+  }
+  //afficher_players(*nombre_player, *players);
+  fclose(file);
+  return id;
 }
 
 static void afficher_jeu(jeu_t jeu, Client *client1, Client *client2) {
