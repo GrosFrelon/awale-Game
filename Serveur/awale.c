@@ -117,9 +117,15 @@ int appliquerCoup(int numeroJoueur, int position, jeu_t *jeu) {
   return 0;
 }
 
-// Return 0 si on est dans le camp adverse
+// Return 1 si on est dans le camp adverse
 int positionCampAdverse(int position, int numeroJoueur) {
-  return !(numeroJoueur * 6 <= position && position <= (numeroJoueur * 6 + 5));
+  if (position < 0 || position > 11) return 0;
+  if (numeroJoueur == 1) {          // camp adverse = 6..11
+    return position >= 6 && position <= 11;
+  } else if (numeroJoueur == 2) {   // camp adverse = 0..5
+    return position >= 0 && position <= 5;
+  }
+  return 0;
 }
 
 void augmenterScore(int numeroJoueur, int graines, jeu_t *jeu) {

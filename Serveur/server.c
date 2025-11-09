@@ -324,11 +324,11 @@ static void send_request_challenge(Client *sender, char *receiver,
     send_to_client_text(sender, message);
   } else { // Comment on différencie les clients? par le sock ou le nom. En vrai
     // pareil parcqu'on retrouve la personne avec son nom donc nom unique
-    sprintf(message, "Challenge request send to : %s\n", pClient->player->name);
+    sprintf(message, "Challenge request send to : %s (Press N to cancel the invitation)\n", pClient->player->name);
     send_to_client_text(sender, message);
 
     message[0] = 0;
-    sprintf(message, "%s challenges you \n Press Y to accept, N to reject",
+    sprintf(message, "%s challenges you \nPress Y to accept, N to reject\n",
             sender->player->name);
     send_to_client_text(pClient, message);
 
@@ -352,9 +352,9 @@ static void handle_challenge_response(Client *sender, Client *opponent,
     start_game(opponent, sender, list_games, game_id);
   } else if (strcmp(buffer, "N") == 0 || strcmp(buffer, "n") == 0) {
     message[0] = 0;
-    sprintf(message, "%s  refused the challenge\n", sender->player->name);
+    sprintf(message, "%s refused the challenge\n", sender->player->name);
     send_to_client_text(opponent, message);
-    sprintf(message, "You  refused the challenge\n");
+    sprintf(message, "You refused the challenge\n");
     send_to_client_text(sender, message);
     opponent->player->status = Unocupied;
     sender->player->status = Unocupied;
