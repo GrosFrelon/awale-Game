@@ -12,15 +12,16 @@ enum status_player {
   Writting_bio          // 5 attend de recevoir sa string de bio
 };
 
-typedef struct {
+typedef struct _Player {
   int id;
   char name[NAME_SIZE];
   int elo;
-  int gamePlayed;
+  int gamesPlayed;
   int gamesWon;
   enum status_player status;
   char bio[BIO_SIZE];
   int opponent_socket; //-1 si pas de game
+  char _padding_active_game[sizeof(void *)];
 } Player;
 
 #endif

@@ -45,9 +45,7 @@ static void app(void) {
   Player **players = malloc(taille_liste_player * sizeof(Player *));
   game_node *list_games = NULL;
 
-  int last_id_save =
-      load_players(&players, &nombre_player, &taille_liste_player);
-  int id = last_id_save + 1;
+  int id = load_players(&players, &nombre_player, &taille_liste_player) + 1;
   int game_id = 0;
 
   fd_set rdfs; // structure de données pour sauvegarder ce qu'on surveille
@@ -77,7 +75,7 @@ static void app(void) {
 
     /* something from standard input : i.e keyboard */
     if (FD_ISSET(STDIN_FILENO, &rdfs)) {
-      save_players(players, nombre_player, last_id_save);
+      save_players(players, nombre_player);
       /* stop process when type on keyboard */
       break;
     } else if (FD_ISSET(sock, &rdfs)) {
@@ -136,7 +134,6 @@ static void app(void) {
             Player *player = clients[i].player;
 
             if (player != NULL) {
-              // Si le joueur était en partie, notifier l'adversaire
               if (player->status == Ingame) {
                 Client *opponent = find_client_by_socket(
                     player->opponent_socket, clients, actual);
@@ -147,8 +144,21 @@ static void app(void) {
                   opponent->player->status = Unocupied;
                   opponent->player->opponent_socket = -1;
 
+                  player->gamesPlayed++;
+                  opponent->player->gamesPlayed++;
+                  opponent->player->gamesWon++;
+
                   Game *game = find_game_with_player(player, &list_games);
                   if (game) {
+                    int nb_watchers = game->nb_watchers;
+                    for (int i = 0; i < nb_watchers; i++) {
+                      char message[BUF_SIZE];
+                      sprintf(message,
+                              "\n%s s'est déconnecté. Vicoire de %s !\n",
+                              player->name, opponent->player->name);
+                      send_to_client_text(game->watchers[i], message);
+                      quit_watching(game->watchers[i]);
+                    }
                     delete_game(game, &list_games);
                   }
                 }
@@ -177,7 +187,7 @@ static void app(void) {
                 break;
               case Unocupied:
                 analyse_command(&clients[i], buffer, clients, actual,
-                                &list_games);
+                                &list_games, players, nombre_player);
                 break;
               case Ingame:
                 opponent = find_client_by_socket(
@@ -189,6 +199,9 @@ static void app(void) {
                 break;
               case Writting_bio:
                 handle_writting_bio(sender, buffer);
+                break;
+              case Watching:
+                quit_watching(sender);
                 break;
               default:
                 break;
@@ -210,11 +223,12 @@ static Player *initialize_player(char *name, Player ***players,
                                  int *id) {
   Player *p = malloc(sizeof(Player));
   p->elo = 0;
-  p->gamePlayed = 0;
+  p->gamesPlayed = 0;
   p->gamesWon = 0;
   p->status = Unocupied;
   p->id = (*id)++;
   p->opponent_socket = -1;
+  p->active_game = NULL;
   strncpy(p->name, name, NAME_SIZE);
   strncpy(p->bio, " ", BIO_SIZE); // Pour pouvoir parser plus simplement la save
   add_player(players, p, nombre_player, taille_liste_player);
@@ -297,7 +311,8 @@ static void send_unoccupied_clients(Client *clients, Client *sender,
 }
 
 static void analyse_command(Client *sender, const char *buffer, Client *clients,
-                            int actual, game_node **list_games) {
+                            int actual, game_node **list_games,
+                            Player **players, int nombre_player) {
   if (buffer[0] == '/') {
     if (strncmp(buffer, "/users", 6) == 0) {
       send_unoccupied_clients(clients, sender, actual);
@@ -309,14 +324,13 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
       }
       send_request_challenge(sender, receiver_name, clients, actual,
                              list_games);
-    } else if (strncmp(buffer, "/spectate", 10) == 0) {
+    } else if (strncmp(buffer, "/spectate", 9) == 0) {
       char receiver_name[BUF_SIZE];
-      if (sscanf(buffer + 10, " %s", receiver_name) != 1) {
+      if (sscanf(buffer + 9, " %s", receiver_name) != 1) {
         send_to_client_text(sender, "Usage: /spectate <name>\n");
         return;
       }
-      send_to_client_text(sender, "Not implemented for the moment\n");
-      // spectate(sender, receiver_name, clients, actual, list_games);
+      spectate(sender, receiver_name, clients, actual, list_games);
     } else if (strncmp(buffer, "/me", 3) == 0) {
       send_to_client_player(sender, sender->player);
     } else if (strncmp(buffer, "/player", 7) == 0) {
@@ -325,8 +339,13 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
         send_to_client_text(sender, "Usage: /player <name>\n");
         return;
       }
-      Client *pClient = find_client_by_name(clients, player_name, actual);
-      send_to_client_player(sender, pClient->player);
+      Player *found_player =
+          find_player_by_name(player_name, players, nombre_player);
+      if (found_player == 0) {
+        send_to_client_text(sender, "404 Player not found\n");
+      } else {
+        send_to_client_player(sender, found_player);
+      }
     } else if (strncmp(buffer, "/help", 3) == 0) {
       send_to_client_text(
           sender,
@@ -337,10 +356,11 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
           "\n\t- /users : display a list of all users"
           "\n\t- /player <name> : display information about a player"
           "\n\t- /challenge <name> : challenge player to a game of awale"
-          "\n\t- /spectate <name> : spectate player's current game of awale");
+          "\n\t- /spectate <name> : spectate player's current game of awale"
+          "\n\n");
     } else {
       send_to_client_text(sender,
-                          "bad command, type /help for help on commands");
+                          "bad command, type /help for help on commands\n");
     }
   }
 }
@@ -359,7 +379,10 @@ static void send_request_challenge(Client *sender, char *receiver,
     send_to_client_text(sender, message);
   } else { // Comment on différencie les clients? par le sock ou le nom. En vrai
     // pareil parcqu'on retrouve la personne avec son nom donc nom unique
-    sprintf(message, "Challenge request send to : %s (Press N to cancel the invitation)\n", pClient->player->name);
+    sprintf(
+        message,
+        "Challenge request send to : %s (Press N to cancel the invitation)\n",
+        pClient->player->name);
     send_to_client_text(sender, message);
 
     message[0] = 0;
@@ -419,6 +442,9 @@ static void start_game(Client *client1, Client *client2, game_node **list_games,
   game->player2 = client2->player;
   game->playing = 1;
   game->winner = 0;
+  game->nb_watchers = 0;
+  game->watchers_list_size = 0;
+  game->watchers = NULL;
 
   free(jeu);
 
@@ -427,16 +453,17 @@ static void start_game(Client *client1, Client *client2, game_node **list_games,
   send_to_client_clear(client1);
   send_to_client_clear(client2);
 
-  // usleep(10000);
-
   send_to_client_game(client1, &game->jeu);
   send_to_client_game(client2, &game->jeu);
+  for (int i = 0; i < game->nb_watchers; i++) {
+    send_to_client_clear(game->watchers[i]);
+    sprintf(message, "You are spectating. Send any key to stop.\n\n");
+    send_to_client_text(game->watchers[i], message);
+    send_to_client_game(game->watchers[i], &game->jeu);
+  }
   // afficher(*jeu);
 
-  // usleep(10000);
-
   if (game->jeu.active_player == 1) {
-    // Pourquoi on voit pas ça ?
     send_to_client_text(client1, "C'est votre tour, donnez le numéro de la "
                                  "case que vous voulez jouer -> ");
     send_to_client_text(client2, "Ce n'est pas votre tour...\n");
@@ -461,46 +488,73 @@ static void handle_game_move(Client *sender, Client *opponent, char *buffer,
 
     if (appliquerCoup(game->jeu.active_player, positionDemande, &game->jeu) ==
         0) {
-      if (game->jeu.j1Score >= 24 || game->jeu.j2Score >= 24) {
+      // if (game->jeu.j1Score >= 24 || game->jeu.j2Score >= 24) {
+      if (game->jeu.j1Score >= 2 || game->jeu.j2Score >= 2) {
         game->playing = 0;
         game->winner = (game->jeu.j1Score > game->jeu.j2Score) ? 1 : 2;
 
         char message[BUF_SIZE];
-        sprintf(message, "Fin de partie ! Gagnant : %s",
+        sprintf(message, "Fin de partie ! Gagnant : %s\n",
                 game->winner == 1 ? game->player1->name : game->player2->name);
         send_to_client_text(sender, message);
         send_to_client_text(opponent, message);
 
+        int nb_watchers = game->nb_watchers;
+        for (int i = 0; i < nb_watchers; i++) {
+          char message[BUF_SIZE];
+          sprintf(message, "Fin de partie. Vicoire de %s !\n",
+                  game->winner == 1 ? game->player1->name
+                                    : game->player2->name);
+          send_to_client_text(game->watchers[i], message);
+          quit_watching(game->watchers[i]);
+        }
+
+        if (game->winner == 1) {
+          game->player1->gamesWon++;
+        } else {
+          game->player2->gamesWon++;
+        }
+
+        sender->player->gamesPlayed++;
+        opponent->player->gamesPlayed++;
         sender->player->status = Unocupied;
         opponent->player->status = Unocupied;
         sender->player->opponent_socket = -1;
         opponent->player->opponent_socket = -1;
 
         delete_game(game, list_games);
+      } else {
+
+        game->jeu.active_player = (game->jeu.active_player == 1) ? 2 : 1;
+        // printf("%s joue : %s\n", sender->player->name, buffer);
+
+        send_to_client_clear(sender);
+        send_to_client_clear(opponent);
+
+        char message[BUF_SIZE];
+
+        send_to_client_game(sender, &game->jeu);
+        send_to_client_game(opponent, &game->jeu);
+        for (int i = 0; i < game->nb_watchers; i++) {
+          send_to_client_clear(game->watchers[i]);
+          sprintf(message, "You are spectating. Send any key to stop.\n\n");
+          send_to_client_text(game->watchers[i], message);
+          send_to_client_game(game->watchers[i], &game->jeu);
+        }
+        // afficher(game->jeu);
+
+        send_to_client_text(opponent,
+                            "C'est votre tour, donnez le numéro de la "
+                            "case que vous voulez jouer -> ");
+        send_to_client_text(sender, "Ce n'est pas votre tour...\n");
       }
-      game->jeu.active_player = (game->jeu.active_player == 1) ? 2 : 1;
-      // printf("%s joue : %s\n", sender->player->name, buffer);
-
-      send_to_client_clear(sender);
-      send_to_client_clear(opponent);
-
-      send_to_client_game(sender, &game->jeu);
-      send_to_client_game(opponent, &game->jeu);
-      // afficher(game->jeu);
-
-      // usleep(10000); // Pour creer deux packets TCP distincts, 10ms de délai
-
-      send_to_client_text(opponent, "C'est votre tour, donnez le numéro de la "
-                                    "case que vous voulez jouer -> ");
-      send_to_client_text(sender, "Ce n'est pas votre tour...\n");
-
     } else {
       send_to_client_text(
           sender,
           "Le coup n'est pas autorisé, restez focus ! Nouvelle chance -> ");
     }
   } else {
-    send_to_client_text(sender, "Ce n'est pas à vous de jouer...");
+    send_to_client_text(sender, "Ce n'est pas à vous de jouer...\n");
   };
 }
 
@@ -553,6 +607,29 @@ static void handle_writting_bio(Client *sender, char *buffer) {
   send_to_client_text(sender, "Bio enregistrée.");
 }
 
+static void quit_watching(Client *sender) {
+
+  Game *game = sender->player->active_game;
+
+  if (game != NULL) {
+    for (int i = 0; i < game->nb_watchers; i++) {
+      if (game->watchers[i] == sender) {
+        // tableau donc ajustement index
+        for (int j = i; j < game->nb_watchers - 1; j++) {
+          game->watchers[j] = game->watchers[j + 1];
+        }
+        game->nb_watchers--;
+        break;
+      }
+    }
+    sender->player->active_game = NULL;
+  }
+
+  sender->player->status = Unocupied;
+
+  send_to_client_text(sender, "No longer watching the game.\n");
+}
+
 static Client *find_client_by_name(Client *clients, char *client, int actual) {
   int position = 0;
   Client clientTmp;
@@ -565,11 +642,50 @@ static Client *find_client_by_name(Client *clients, char *client, int actual) {
   return 0;
 }
 
-// static void spectate(Client *sender, char *player_name, Client *clients,
-//                      int actual, game_node **list_games) {
-//   Client *pClient = find_client_by_name(clients, player_name, actual);
-//   Game *game = find_game_with_player(pClient->player, list_games);
-// }
+static void spectate(Client *sender, char *player_name, Client *clients,
+                     int actual, game_node **list_games) {
+  Client *pClient = find_client_by_name(clients, player_name, actual);
+  char message[BUF_SIZE];
+  if (pClient == 0) {
+    sprintf(message, "Player not found : %s\n", player_name);
+    send_to_client_text(sender, message);
+  } else if (pClient->player->status != Ingame) {
+    sprintf(message,
+            "Player %s is not in game. Check /users for a list of in game "
+            "players.\n",
+            player_name);
+    send_to_client_text(sender, message);
+  } else {
+    Game *game = find_game_with_player(pClient->player, list_games);
+
+    sender->player->status = Watching;
+
+    add_watcher(game, sender);
+
+    send_to_client_clear(sender);
+
+    sprintf(message,
+            "You are now spectating %s's game. Send any key to stop.\n\n",
+            player_name);
+    send_to_client_text(sender, message);
+    send_to_client_game(sender, &game->jeu);
+  }
+}
+
+static void add_watcher(Game *game, Client *client) {
+  if (game == NULL) {
+    return;
+  }
+  if (game->nb_watchers >= game->watchers_list_size) {
+    int new_cap = game->watchers_list_size + 3;
+    Client **new_list = realloc((game->watchers), new_cap * sizeof(Client *));
+    game->watchers = new_list;
+    game->watchers_list_size = new_cap;
+  }
+  game->watchers[game->nb_watchers] = client;
+  game->nb_watchers++;
+  client->player->active_game = game;
+}
 
 static Client *is_client_unocupied(Client *clients, char *client, int actual) {
   int position = 0;
@@ -625,19 +741,17 @@ static Client *find_client_by_socket(SOCKET sock, Client *clients,
   return 0;
 }
 
-static void save_players(Player **players, int nombre_player, int id) {
+static void save_players(Player **players, int nombre_player) {
   Player *player_tmp;
-  FILE *file = fopen(SAVE_FILE, "a");
+  FILE *file = fopen(SAVE_FILE, "w");
   for (int i = 0; i < nombre_player; i++) {
-    if (i > id) {
-      player_tmp = players[i];
-      fprintf(file, "%d;", player_tmp->id);
-      fprintf(file, "%s;", player_tmp->name);
-      fprintf(file, "%s;", player_tmp->bio);
-      fprintf(file, "%d;", player_tmp->gamePlayed);
-      fprintf(file, "%d;", player_tmp->gamesWon);
-      fprintf(file, "%d;\n", player_tmp->elo);
-    }
+    player_tmp = players[i];
+    fprintf(file, "%d;", player_tmp->id);
+    fprintf(file, "%s;", player_tmp->name);
+    fprintf(file, "%s;", player_tmp->bio);
+    fprintf(file, "%d;", player_tmp->gamesPlayed);
+    fprintf(file, "%d;", player_tmp->gamesWon);
+    fprintf(file, "%d;\n", player_tmp->elo);
   }
   fclose(file);
 }
@@ -671,7 +785,7 @@ static int load_players(Player ***players, int *nombre_player,
     Player *p = (Player *)malloc(sizeof(Player));
     strncpy(p->name, name, NAME_SIZE);
     strncpy(p->bio, bio, BIO_SIZE);
-    p->gamePlayed = atoi(played_str);
+    p->gamesPlayed = atoi(played_str);
     p->gamesWon = atoi(won_str);
     p->elo = atoi(elo_str);
     p->id = atoi(id_str);

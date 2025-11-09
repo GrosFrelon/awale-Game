@@ -47,7 +47,8 @@ static void send_unoccupied_clients(Client *clients, Client *client,
 static void remove_client(Client *clients, int to_remove, int *actual);
 // static void clear_clients(Client *clients, int actual);
 static void analyse_command(Client *client, const char *buffer, Client *clients,
-                            int actual, game_node **list_games);
+                            int actual, game_node **list_games,
+                            Player **players, int nombre_player);
 static void send_request_challenge(Client *sender, char *receiver,
                                    Client *clients, int actual,
                                    game_node **list_games);
@@ -63,6 +64,9 @@ static void add_player(Player ***players, Player *player, int *nombre_player,
 static void afficher_players(int taille, Player **players);
 static Player *find_player_by_name(char *buffer, Player **players,
                                    int nb_players);
+static void spectate(Client *sender, char *player_name, Client *clients,
+                     int actual, game_node **list_games);
+static void add_watcher(Game *game, Client *client);
 static void afficher_jeu(jeu_t jeu, Client *client1, Client *client2);
 static void handle_challenge_response(Client *sender, Client *opponent,
                                       char *buffer, Client *clients,
@@ -81,8 +85,9 @@ static void connect_client_to_player(Client *sender, char *name,
 static Player *initialize_player(char *name, Player ***players,
                                  int *nombre_player, int *taille_liste_player,
                                  int *id);
-static void save_players(Player **players, int nombre_player, int id);
+static void save_players(Player **players, int nombre_player);
 static int load_players(Player ***players, int *nombre_player,
                         int *taille_liste);
+static void quit_watching(Client *sender);
 
 #endif /* guard */
