@@ -215,9 +215,15 @@ static void process_server_message(SOCKET sock) {
     if (len == sizeof(jeu_t)) {
       jeu_t jeu;
       memcpy(&jeu, buffer, sizeof(jeu_t));
-      afficher_jeu(jeu);
+      // afficher_jeu(jeu);
+      afficher_jeu_ascii_art(jeu);
     } else {
       fprintf(stderr, "Paquet jeu_t incomplet (%d/%zu)\n", len, sizeof(jeu_t));
+      fprintf(stderr, "Buffer (ascii): ");
+      for (int i = 0; i < len; i++) {
+        fprintf(stderr, "%c", (unsigned char)buffer[i]);
+      }
+      fprintf(stderr, "\n");
       ;
     }
     break;
@@ -290,4 +296,37 @@ int main(int argc, char **argv) {
   end();
 
   return EXIT_SUCCESS;
+}
+
+static void afficher_jeu_ascii_art(jeu_t jeu) {
+
+  printf("\t");
+  for (int i = 0; i < (37 - strlen(jeu.j1Name)) / 2; i++) {
+    printf(" ");
+  }
+  printf("%s\n", jeu.j1Name);
+  printf("\t┌─────┬─────┬─────┬─────┬─────┬─────┐\n\t│");
+  for (int i = 0; i < 6; i++) {
+    if (jeu.plateau[i] < 10) {
+      printf("  %d  |", jeu.plateau[i]);
+    } else {
+      printf("  %d |", jeu.plateau[i]);
+    }
+  }
+  printf("\n\t├───────────────────────────────────┤\n\t│");
+  for (int i = 11; i > 5; i--) {
+    if (jeu.plateau[i] < 10) {
+      printf("  %d  |", jeu.plateau[i]);
+    } else {
+      printf("  %d |", jeu.plateau[i]);
+    };
+  }
+  printf("\n\t└─────┴─────┴─────┴─────┴─────┴─────┘\n");
+  printf("\t");
+  for (int i = 0; i < (37 - strlen(jeu.j2Name)) / 2; i++) {
+    printf(" ");
+  }
+  printf("%s\n", jeu.j2Name);
+  printf("Score de %s : %d \n", jeu.j1Name, jeu.j1Score);
+  printf("Score de %s : %d \n", jeu.j2Name, jeu.j2Score);
 }

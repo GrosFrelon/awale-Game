@@ -375,7 +375,7 @@ static void start_game(Client *client1, Client *client2, game_node **list_games,
   client1->player->status = Ingame;
   client2->player->status = Ingame;
 
-  jeu_t *jeu = initGame(1);
+  jeu_t *jeu = initGame(1, client1->player->name, client2->player->name);
 
   Game *game = malloc(sizeof(Game));
   game->game_id = (*game_id)++;
@@ -444,7 +444,7 @@ static void handle_game_move(Client *sender, Client *opponent, char *buffer,
         // delete_game(game, list_games);
       }
       game->jeu.active_player = (game->jeu.active_player == 1) ? 2 : 1;
-      printf("%s joue : %s\n", sender->player->name, buffer);
+      // printf("%s joue : %s\n", sender->player->name, buffer);
 
       send_to_client_clear(sender);
       send_to_client_clear(opponent);

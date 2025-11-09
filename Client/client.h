@@ -45,6 +45,7 @@ static int receive_message(SOCKET sock, char *buffer, size_t buffer_size,
                            char *msg_type);
 static void write_server(SOCKET sock, const char *buffer);
 static void afficher_jeu(jeu_t jeu);
+static void afficher_jeu_ascii_art(jeu_t jeu);
 // static void afficher_buffer(char *buffer, int n);
 static void afficher_player(Player player);
 static void process_server_message(SOCKET sock);

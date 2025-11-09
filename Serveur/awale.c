@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include "awale.h"
@@ -35,7 +36,7 @@
 //   }
 // }
 
-jeu_t *initGame(int rotation) {
+jeu_t *initGame(int rotation, char *namePlayer1, char *namePlayer2) {
   jeu_t *jeu = malloc(sizeof(jeu_t));
   srand(time(NULL));
   for (int i = 0; i < 12; i++) {
@@ -44,6 +45,8 @@ jeu_t *initGame(int rotation) {
   jeu->j1Score = jeu->j2Score = 0;
   jeu->rotation = rotation;
   jeu->active_player = (rand() % 2) + 1;
+  strcpy(jeu->j1Name, namePlayer1);
+  strcpy(jeu->j2Name, namePlayer2);
   return jeu;
 }
 
