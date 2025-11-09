@@ -15,8 +15,11 @@
 #define SOCKET_ERROR -1
 #define closesocket(s) close(s)
 
+int send_exact(SOCKET sock, const void *buffer, size_t n);
+
 void send_to_client_text(Client *client, const char *message);
 void send_to_client_game(Client *client, jeu_t *game);
+void send_to_client_player(Client *client, Player *player);
 void send_to_client_clear(Client *client);
 
 // Fonctions du prof
@@ -25,4 +28,3 @@ int init_connection(void);
 int read_client(SOCKET sock, char *buffer);
 void end_connection(int sock);
 void clear_clients(Client *clients, int actual);
-void send_to_client_player(Client *client, Player *player);

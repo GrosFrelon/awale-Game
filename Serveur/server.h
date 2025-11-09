@@ -55,6 +55,7 @@ static void start_game(Client *client1, Client *client2, game_node **list_games,
                        int *game_id);
 static void send_welcome_message(Client *client, int first_co,
                                  int player_already_co);
+static Client *find_client_by_name(Client *clients, char *client, int actual);
 static Client *is_client_unocupied(Client *clients, char *client, int actual);
 static void afficher_clients(int taille, Client *clients);
 static void add_player(Player ***players, Player *player, int *nombre_player,

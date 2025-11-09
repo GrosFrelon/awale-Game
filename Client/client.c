@@ -60,13 +60,14 @@ static void app(const char *address, const char *name) {
       }
       write_server(sock, buffer);
     } else if (FD_ISSET(sock, &rdfs)) {
-      int n = read_server(sock, buffer);
-      /* server down */
-      if (n == 0) {
-        printf("Server disconnected !\n");
-        break;
-      }
-      afficher_buffer(buffer, n);
+      // int n = read_server(sock, buffer);
+      // /* server down */
+      // if (n == 0) {
+      //   printf("Server disconnected !\n");
+      //   break;
+      // }
+      // afficher_buffer(buffer, n);
+      process_server_message(sock);
     }
   }
 
@@ -103,17 +104,66 @@ static int init_connection(const char *address) {
 
 static void end_connection(int sock) { closesocket(sock); }
 
-static int read_server(SOCKET sock, char *buffer) {
-  int n = 0;
+// static int read_server(SOCKET sock, char *buffer) {
+//   int n = 0;
 
-  if ((n = recv(sock, buffer, BUF_SIZE - 1, 0)) < 0) {
-    perror("recv()");
-    exit(errno);
+//   if ((n = recv(sock, buffer, BUF_SIZE - 1, 0)) < 0) {
+//     perror("recv()");
+//     exit(errno);
+//   }
+
+//   buffer[n] = 0;
+
+//   return n;
+// }
+
+static int recv_exact(SOCKET sock, void *buffer, size_t n) {
+  size_t received = 0;
+  char *buf = (char *)buffer;
+
+  while (received < n) {
+    int r = recv(sock, buf + received, n - received, 0);
+    if (r <= 0) {
+      return r; // Erreur ou déconnexion
+    }
+    received += r;
+  }
+  return received;
+}
+
+static int receive_message(SOCKET sock, char *buffer, size_t buffer_size,
+                           char *msg_type) {
+  // Recevoir le type (1 octet)
+  char type;
+  if (recv_exact(sock, &type, 1) != 1) {
+    return -1;
+  }
+  *msg_type = type;
+
+  // Recevoir la longueur (4 octets)
+  uint32_t net_len;
+  if (recv_exact(sock, &net_len, sizeof(net_len)) != sizeof(net_len)) {
+    return -1;
   }
 
-  buffer[n] = 0;
+  uint32_t data_len = ntohl(net_len);
 
-  return n;
+  // pour pas se retrouver avec la moitie des donnees dans le buffer
+  if (data_len > buffer_size) {
+    fprintf(stderr, "Erreur : message trop long: %u octets (buffer: %zu)\n",
+            data_len, buffer_size);
+    return -1;
+  }
+
+  if (data_len == 0) {
+    return 0;
+  }
+
+  if (recv_exact(sock, buffer, data_len) != (int)data_len) {
+    return -1;
+  }
+
+  return data_len;
 }
 
 static void write_server(SOCKET sock, const char *buffer) {
@@ -143,37 +193,89 @@ static void afficher_player(Player player) {
   printf("Nombre de games jouées : %d", player.gamePlayed);
 }
 
-static void afficher_buffer(char *buffer, int n) {
-  if (n > 0) {
-    if (buffer[0] == '0') {
-      if (n > 1) {
-        puts(buffer + 1);
-      }
-    } else if (buffer[0] == '1') {
-      // Données d’un jeu_t en binaire après l’indicateur
-      if (n - 1 >= (int)sizeof(jeu_t)) {
-        jeu_t jeu;
-        memcpy(&jeu, buffer + 1, sizeof(jeu_t));
-        afficher_jeu(jeu);
-      } else {
-        fprintf(stderr, "Paquet jeu_t incomplet (%d/%zu)\n", n - 1,
-                sizeof(jeu_t));
-      }
-    } else if (buffer[0] == '2') {
-      // On peut pas tester la taille minimal parcque taille dépend de la taille
-      // de la bio et du name (ou alors faut prendre la taille sans bio et sans
-      // name)
-      Player player;
-      memcpy(&player, buffer + 1, sizeof(Player));
-      afficher_player(player);
-    } else if (buffer[0] == '3') {
-      printf("\033[2J\033[H");
-      fflush(stdout);
+static void process_server_message(SOCKET sock) {
+  char buffer[BUF_SIZE];
+  char msg_type;
+
+  int len = receive_message(sock, buffer, sizeof(buffer), &msg_type);
+
+  if (len < 0) {
+    fprintf(stderr, "Erreur de réception\n");
+    return;
+  }
+
+  switch (msg_type) {
+  case '0':             // Message texte
+    buffer[len] = '\0'; // Terminer la chaîne
+    printf("%s", buffer);
+    fflush(stdout);
+    break;
+
+  case '1': // État du jeu
+    if (len == sizeof(jeu_t)) {
+      jeu_t jeu;
+      memcpy(&jeu, buffer, sizeof(jeu_t));
+      afficher_jeu(jeu);
     } else {
-      puts(buffer);
+      fprintf(stderr, "Paquet jeu_t incomplet (%d/%zu)\n", len, sizeof(jeu_t));
+      ;
     }
+    break;
+
+  case '2': // Informations joueur
+    if (len == sizeof(Player)) {
+      Player player;
+      memcpy(&player, buffer, sizeof(Player));
+      afficher_player(player);
+    } else {
+      fprintf(stderr, "Taille de joueur invalide\n");
+    }
+    break;
+
+  case '3': // Clear screen
+    printf("\033[2J\033[H");
+    fflush(stdout);
+    break;
+
+  default:
+    fprintf(stderr, "Type de message inconnu: '%c'\n", msg_type);
+    break;
   }
 }
+
+// static void afficher_buffer(char *buffer, int n) {
+//   if (n > 0) {
+//     if (buffer[0] == '0') {
+//       if (n > 1) {
+//         puts(buffer + 1);
+//       }
+//     } else if (buffer[0] == '1') {
+//       // Données d’un jeu_t en binaire après l’indicateur
+//       if (n - 1 >= (int)sizeof(jeu_t)) {
+//         jeu_t jeu;
+//         memcpy(&jeu, buffer + 1, sizeof(jeu_t));
+//         afficher_jeu(jeu);
+//       } else {
+//         fprintf(stderr, "Paquet jeu_t incomplet (%d/%zu)\n", n - 1,
+//                 sizeof(jeu_t));
+//       }
+//     } else if (buffer[0] == '2') {
+//       // On peut pas tester la taille minimal parcque taille dépend de la
+//       taille
+//       // de la bio et du name (ou alors faut prendre la taille sans bio et
+//       sans
+//       // name)
+//       Player player;
+//       memcpy(&player, buffer + 1, sizeof(Player));
+//       afficher_player(player);
+//     } else if (buffer[0] == '3') {
+//       printf("\033[2J\033[H");
+//       fflush(stdout);
+//     } else {
+//       puts(buffer);
+//     }
+//   }
+// }
 
 int main(int argc, char **argv) {
   if (argc < 2) {

@@ -159,6 +159,7 @@ static void app(void) {
 
           } else {
             Client *sender = &clients[i];
+            Client *opponent;
             if (sender->player == 0) { // Si on a pas de player associé
               connect_client_to_player(sender, buffer, clients, &players,
                                        &nombre_player, actual,
@@ -167,7 +168,7 @@ static void app(void) {
               switch (sender->player->status) {
               case Waiting_for_opponent:
               case Challenge_pending:
-                Client *opponent = find_client_by_socket(
+                opponent = find_client_by_socket(
                     sender->player->opponent_socket, clients, actual);
                 handle_challenge_response(sender, opponent, buffer, clients,
                                           &list_games, &game_id);
@@ -177,7 +178,7 @@ static void app(void) {
                                 &list_games);
                 break;
               case Ingame:
-                Client *opponent = find_client_by_socket(
+                opponent = find_client_by_socket(
                     sender->player->opponent_socket, clients, actual);
                 handle_game_move(sender, opponent, buffer, &list_games);
                 break;
@@ -295,6 +296,14 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
                              list_games);
     } else if (strncmp(buffer, "/me", 3) == 0) {
       send_to_client_player(sender, sender->player);
+    } else if (strncmp(buffer, "/player", 7) == 0) {
+      char player_name[BUF_SIZE];
+      if (sscanf(buffer + 7, " %s", player_name) != 1) {
+        send_to_client_text(sender, "Usage: /player <name>\n");
+        return;
+      }
+      Client *pClient = find_client_by_name(clients, player_name, actual);
+      send_to_client_player(sender, pClient->player);
     } else {
       send_to_client_text(sender, "bad command");
     }
@@ -383,13 +392,13 @@ static void start_game(Client *client1, Client *client2, game_node **list_games,
   send_to_client_clear(client1);
   send_to_client_clear(client2);
 
-  usleep(10000);
+  // usleep(10000);
 
   send_to_client_game(client1, &game->jeu);
   send_to_client_game(client2, &game->jeu);
   // afficher(*jeu);
 
-  usleep(10000);
+  // usleep(10000);
 
   if (game->jeu.active_player == 1) {
     // Pourquoi on voit pas ça ?
@@ -436,11 +445,15 @@ static void handle_game_move(Client *sender, Client *opponent, char *buffer,
       }
       game->jeu.active_player = (game->jeu.active_player == 1) ? 2 : 1;
       printf("%s joue : %s\n", sender->player->name, buffer);
+
+      send_to_client_clear(sender);
+      send_to_client_clear(opponent);
+
       send_to_client_game(sender, &game->jeu);
       send_to_client_game(opponent, &game->jeu);
       // afficher(game->jeu);
 
-      usleep(10000); // Pour creer deux packets TCP distincts, 10ms de délai
+      // usleep(10000); // Pour creer deux packets TCP distincts, 10ms de délai
 
       send_to_client_text(opponent, "C'est votre tour, donnez le numéro de la "
                                     "case que vous voulez jouer -> ");
@@ -503,6 +516,18 @@ static void handle_writting_bio(Client *sender, char *buffer) {
   sender->player->status = Unocupied;
 
   send_to_client_text(sender, "Bio enregistrée.");
+}
+
+static Client *find_client_by_name(Client *clients, char *client, int actual) {
+  int position = 0;
+  Client clientTmp;
+  for (position = 0; position < actual; position++) {
+    clientTmp = clients[position];
+    if (strcmp(client, clientTmp.player->name) == 0) {
+      return &clients[position];
+    }
+  }
+  return 0;
 }
 
 static Client *is_client_unocupied(Client *clients, char *client, int actual) {

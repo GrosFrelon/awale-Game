@@ -39,10 +39,14 @@ static void end(void);
 static void app(const char *address, const char *name);
 static int init_connection(const char *address);
 static void end_connection(int sock);
-static int read_server(SOCKET sock, char *buffer);
+// static int read_server(SOCKET sock, char *buffer);
+static int recv_exact(SOCKET sock, void *buffer, size_t n);
+static int receive_message(SOCKET sock, char *buffer, size_t buffer_size,
+                           char *msg_type);
 static void write_server(SOCKET sock, const char *buffer);
 static void afficher_jeu(jeu_t jeu);
-static void afficher_buffer(char *buffer, int n);
+// static void afficher_buffer(char *buffer, int n);
 static void afficher_player(Player player);
+static void process_server_message(SOCKET sock);
 
 #endif /* guard */
