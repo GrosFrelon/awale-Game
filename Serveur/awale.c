@@ -93,7 +93,10 @@ int appliquerCoup(int numeroJoueur, int position, jeu_t *jeu) {
   // graines
   posDemarageSemage = position + jeu->rotation;
   for (int i = posDemarageSemage;
-       i < (nbGrainesRecuperees + nbGrainesRecuperees / 12 + posDemarageSemage);
+       i < (nbGrainesRecuperees + nbGrainesRecuperees / 12 +
+            posDemarageSemage) &&
+       i > (-1 * (nbGrainesRecuperees + nbGrainesRecuperees / 12 -
+                  posDemarageSemage));
        i = i + jeu->rotation) {
     indiceParcours =
         ((i % 12) + 12) % 12; // toujours un nombre positif entre 0 et 12
