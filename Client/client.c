@@ -190,7 +190,7 @@ static void afficher_player(Player player) {
   printf("Name : %s\n", player.name);
   printf("Bio : %s\n", player.bio);
   printf("Nombre de victoires : %d\n", player.gamesWon);
-  printf("Nombre de games jouées : %d", player.gamePlayed);
+  printf("Nombre de games jouées : %d\n", player.gamePlayed);
 }
 
 static void process_server_message(SOCKET sock) {

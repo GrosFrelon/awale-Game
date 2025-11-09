@@ -317,14 +317,14 @@ static void send_request_challenge(Client *sender, char *receiver,
   char message[BUF_SIZE];
   message[0] = 0;
   if (pClient == 0) {
-    sprintf(message, "Receiver not found : %s", receiver);
+    sprintf(message, "Receiver not found : %s\n", receiver);
     send_to_client_text(sender, message);
   } else if (pClient->sock == sender->sock) {
-    sprintf(message, "You can't play against yourself");
+    sprintf(message, "You can't play against yourself\n");
     send_to_client_text(sender, message);
   } else { // Comment on différencie les clients? par le sock ou le nom. En vrai
     // pareil parcqu'on retrouve la personne avec son nom donc nom unique
-    sprintf(message, "Challenge request send to : %s", pClient->player->name);
+    sprintf(message, "Challenge request send to : %s\n", pClient->player->name);
     send_to_client_text(sender, message);
 
     message[0] = 0;
@@ -476,7 +476,7 @@ static void send_welcome_message(Client *client, int first_co,
   if (!player_already_co) {
     sprintf(message,
             "Bonjour %s ! Bienvenue sur le meilleur seveur de awale. Içi, une "
-            "seule règle : s'amuser !",
+            "seule règle : s'amuser !\n",
             client->player->name);
     if (first_co == 1) {
       strncat(
