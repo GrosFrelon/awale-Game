@@ -375,7 +375,7 @@ static void start_game(Client *client1, Client *client2, game_node **list_games,
   client1->player->status = Ingame;
   client2->player->status = Ingame;
 
-  jeu_t *jeu = initGame(1, client1->player->name, client2->player->name);
+  jeu_t *jeu = initGame(-1, client1->player->name, client2->player->name);
 
   Game *game = malloc(sizeof(Game));
   game->game_id = (*game_id)++;

@@ -304,8 +304,21 @@ static void afficher_jeu_ascii_art(jeu_t jeu) {
   for (int i = 0; i < (37 - strlen(jeu.j1Name)) / 2; i++) {
     printf(" ");
   }
-  printf("%s\n", jeu.j1Name);
-  printf("\t┌─────┬─────┬─────┬─────┬─────┬─────┐\n\t│");
+  printf("%s", jeu.j1Name);
+  for (int i = 0; i < 37 - strlen(jeu.j1Name) - ((37 - strlen(jeu.j1Name)) / 2);
+       i++) {
+    printf(" ");
+  }
+  if (jeu.rotation == -1) {
+    printf("<┐");
+  } else {
+    printf(" ┐");
+  }
+  printf("\n\t┌─────┬─────┬─────┬─────┬─────┬─────┐");
+  if (jeu.rotation == 1) {
+    printf(" v");
+  }
+  printf("\n\t│");
   for (int i = 0; i < 6; i++) {
     if (jeu.plateau[i] < 10) {
       printf("  %d  |", jeu.plateau[i]);
@@ -327,6 +340,10 @@ static void afficher_jeu_ascii_art(jeu_t jeu) {
     printf(" ");
   }
   printf("%s\n", jeu.j2Name);
+  for (int i = 0; i < (37 - strlen(jeu.j2Name) - (37 - strlen(jeu.j2Name))) / 2;
+       i++) {
+    printf(" ");
+  }
   printf("Score de %s : %d \n", jeu.j1Name, jeu.j1Score);
   printf("Score de %s : %d \n", jeu.j2Name, jeu.j2Score);
 }
