@@ -133,26 +133,28 @@ static void app(void) {
           if (c == 0) {
             // gérer déconnexion pendant partie
 
-            // Player *player = clients[i].player;
+            Player *player = clients[i].player;
 
-            // // Si le joueur était en partie, notifier l'adversaire
-            // if (player->status == Ingame) {
-            //   Client *opponent =
-            //   find_client_by_socket(player->opponent_socket,
-            //                                            clients, actual);
-            //   if (opponent) {
-            //     send_to_client_text(opponent,
-            //                         "Votre adversaire s'est déconnecté. Vous
-            //                         " "gagnez par forfait.");
-            //     opponent->player->status = Unocupied;
-            //     opponent->player->opponent_socket = -1;
+            if (player != NULL) {
+              // Si le joueur était en partie, notifier l'adversaire
+              if (player->status == Ingame) {
+                Client *opponent = find_client_by_socket(
+                    player->opponent_socket, clients, actual);
+                if (opponent) {
+                  send_to_client_text(
+                      opponent, "\nVotre adversaire s'est déconnecté. Vous "
+                                "gagnez par forfait.\n");
+                  opponent->player->status = Unocupied;
+                  opponent->player->opponent_socket = -1;
 
-            //     Game *game = find_game_with_player(player, &list_games);
-            //     if (game) {
-            //       delete_game(game, &list_games);
-            //     }
-            //   }
-            // }
+                  Game *game = find_game_with_player(player, &list_games);
+                  if (game) {
+                    delete_game(game, &list_games);
+                  }
+                }
+                player->status = Unocupied;
+              }
+            }
 
             closesocket(clients[i].sock);
             remove_client(clients, i, &actual);
@@ -266,11 +268,24 @@ static void send_unoccupied_clients(Client *clients, Client *sender,
   char message[BUF_SIZE];
   message[0] = 0;
 
-  strncpy(message, "List of online players unocupied:\n",
+  strncpy(message, "List of unoccupied players:\n",
           sizeof(message) - strlen(message) - 1);
 
   for (i = 0; i < actual; i++) {
     if (clients[i].player->status == Unocupied &&
+        clients[i].sock != sender->sock) {
+      strncat(message, "\t- ", sizeof(message) - strlen(message) - 1);
+      strncat(message, clients[i].player->name,
+              sizeof(message) - strlen(message) - 1);
+      strncat(message, "\n", sizeof(message) - strlen(message) - 1);
+    }
+  }
+
+  strncat(message, "List of in game players:\n",
+          sizeof(message) - strlen(message) - 1);
+
+  for (i = 0; i < actual; i++) {
+    if (clients[i].player->status == Ingame &&
         clients[i].sock != sender->sock) {
       strncat(message, "\t- ", sizeof(message) - strlen(message) - 1);
       strncat(message, clients[i].player->name,
@@ -294,6 +309,14 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
       }
       send_request_challenge(sender, receiver_name, clients, actual,
                              list_games);
+    } else if (strncmp(buffer, "/spectate", 10) == 0) {
+      char receiver_name[BUF_SIZE];
+      if (sscanf(buffer + 10, " %s", receiver_name) != 1) {
+        send_to_client_text(sender, "Usage: /spectate <name>\n");
+        return;
+      }
+      send_to_client_text(sender, "Not implemented for the moment\n");
+      // spectate(sender, receiver_name, clients, actual, list_games);
     } else if (strncmp(buffer, "/me", 3) == 0) {
       send_to_client_player(sender, sender->player);
     } else if (strncmp(buffer, "/player", 7) == 0) {
@@ -304,8 +327,20 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
       }
       Client *pClient = find_client_by_name(clients, player_name, actual);
       send_to_client_player(sender, pClient->player);
+    } else if (strncmp(buffer, "/help", 3) == 0) {
+      send_to_client_text(
+          sender,
+          "Awale Game by Raphaël LETOURNEUR and Alois PINTO DE SILVA -- "
+          "WINNEFELD\n\n"
+          "Available commands : "
+          "\n\t- /me : display information about yourself"
+          "\n\t- /users : display a list of all users"
+          "\n\t- /player <name> : display information about a player"
+          "\n\t- /challenge <name> : challenge player to a game of awale"
+          "\n\t- /spectate <name> : spectate player's current game of awale");
     } else {
-      send_to_client_text(sender, "bad command");
+      send_to_client_text(sender,
+                          "bad command, type /help for help on commands");
     }
   }
 }
@@ -441,7 +476,7 @@ static void handle_game_move(Client *sender, Client *opponent, char *buffer,
         sender->player->opponent_socket = -1;
         opponent->player->opponent_socket = -1;
 
-        // delete_game(game, list_games);
+        delete_game(game, list_games);
       }
       game->jeu.active_player = (game->jeu.active_player == 1) ? 2 : 1;
       // printf("%s joue : %s\n", sender->player->name, buffer);
@@ -529,6 +564,12 @@ static Client *find_client_by_name(Client *clients, char *client, int actual) {
   }
   return 0;
 }
+
+// static void spectate(Client *sender, char *player_name, Client *clients,
+//                      int actual, game_node **list_games) {
+//   Client *pClient = find_client_by_name(clients, player_name, actual);
+//   Game *game = find_game_with_player(pClient->player, list_games);
+// }
 
 static Client *is_client_unocupied(Client *clients, char *client, int actual) {
   int position = 0;
