@@ -5,7 +5,6 @@
 
 #include "client.h"
 
-
 static void init(void) {
 #ifdef WIN32
   WSADATA wsa;
@@ -124,27 +123,27 @@ static void write_server(SOCKET sock, const char *buffer) {
   }
 }
 
-static void afficher_jeu(jeu_t jeu){
-    for(int i=0; i<6; i++){
-        printf("%d ", jeu.plateau[i]);
-    }
-    printf("  <- ligne J1\n");
-    for(int i=11; i>5; i--){
-        printf("%d ", jeu.plateau[i]);
-    }
-    printf("  <- ligne J2\n");
-    printf("Score du J1 : %d \n", jeu.j1Score);
-    printf("Score du J2 : %d \n", jeu.j2Score);
+static void afficher_jeu(jeu_t jeu) {
+  for (int i = 0; i < 6; i++) {
+    printf("%d ", jeu.plateau[i]);
+  }
+  printf("  <- ligne J1\n");
+  for (int i = 11; i > 5; i--) {
+    printf("%d ", jeu.plateau[i]);
+  }
+  printf("  <- ligne J2\n");
+  printf("Score du J1 : %d \n", jeu.j1Score);
+  printf("Score du J2 : %d \n", jeu.j2Score);
 }
 
-static void afficher_player(Player player){
+static void afficher_player(Player player) {
   printf("Name : %s\n", player.name);
   printf("Bio : %s\n", player.bio);
   printf("Nombre de victoires : %d\n", player.gamesWon);
   printf("Nombre de games jouées : %d", player.gamePlayed);
 }
 
-static void afficher_buffer(char* buffer, int n){
+static void afficher_buffer(char *buffer, int n) {
   if (n > 0) {
     if (buffer[0] == '0') {
       if (n > 1) {
@@ -157,19 +156,24 @@ static void afficher_buffer(char* buffer, int n){
         memcpy(&jeu, buffer + 1, sizeof(jeu_t));
         afficher_jeu(jeu);
       } else {
-        fprintf(stderr, "Paquet jeu_t incomplet (%d/%zu)\n", n - 1, sizeof(jeu_t));
+        fprintf(stderr, "Paquet jeu_t incomplet (%d/%zu)\n", n - 1,
+                sizeof(jeu_t));
       }
     } else if (buffer[0] == '2') {
-      //On peut pas tester la taille minimal parcque taille dépend de la taille de la bio et du name (ou alors faut prendre la taille sans bio et sans name)
-        Player player;
-        memcpy(&player, buffer + 1, sizeof(Player));
-        afficher_player(player);
+      // On peut pas tester la taille minimal parcque taille dépend de la taille
+      // de la bio et du name (ou alors faut prendre la taille sans bio et sans
+      // name)
+      Player player;
+      memcpy(&player, buffer + 1, sizeof(Player));
+      afficher_player(player);
+    } else if (buffer[0] == '3') {
+      printf("\033[2J\033[H");
+      fflush(stdout);
     } else {
       puts(buffer);
     }
   }
 }
-
 
 int main(int argc, char **argv) {
   if (argc < 2) {

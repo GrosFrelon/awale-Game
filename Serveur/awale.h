@@ -6,6 +6,7 @@ typedef struct {
   int rotation;    //+1 = sens horaire, -1 = sens anti-horaire
   int j1Score;
   int j2Score;
+  int active_player; // 1 ou 2
 } jeu_t;
 
 jeu_t *initGame(int rotation);

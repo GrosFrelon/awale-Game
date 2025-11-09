@@ -14,7 +14,7 @@ void send_to_client_text(Client *client, const char *message) {
 
   buf[0] = '0';
   memcpy(buf + 1, message, len);
-  if (send(client->sock, buf, strlen(message) + 1, 0) < 0) {
+  if (send(client->sock, buf, len + 1, 0) < 0) {
     perror("send()");
     exit(errno);
   }
@@ -55,6 +55,13 @@ void send_to_client_player(Client *client, Player *player) {
     exit(errno);
   }
   free(buf);
+}
+
+void send_to_client_clear(Client *client) {
+  if (send(client->sock, "3", sizeof(jeu_t) + 1, 0) < 0) {
+    perror("send()");
+    exit(errno);
+  }
 }
 
 // Fonctions du prof

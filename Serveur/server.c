@@ -45,8 +45,10 @@ static void app(void) {
   Player **players = malloc(taille_liste_player * sizeof(Player *));
   game_node *list_games = NULL;
 
-  int last_id_save = load_players(&players, &nombre_player, &taille_liste_player);
+  int last_id_save =
+      load_players(&players, &nombre_player, &taille_liste_player);
   int id = last_id_save + 1;
+  int game_id = 0;
 
   fd_set rdfs; // structure de données pour sauvegarder ce qu'on surveille
 
@@ -101,16 +103,16 @@ static void app(void) {
 
       int fist_co = 0;
       int player_already_co = 0;
-      Player *p = find_player_by_name(buffer, players, nombre_player);  
-      if (p != 0){
+      Player *p = find_player_by_name(buffer, players, nombre_player);
+      if (p != 0) {
         player_already_co = player_already_connected(p, clients, actual);
-      }
-      else {  //Si le nom est n'est associé à aucun players
-        p = initialize_player(buffer, &players, &nombre_player, &taille_liste_player,&id);
+      } else { // Si le nom est n'est associé à aucun players
+        p = initialize_player(buffer, &players, &nombre_player,
+                              &taille_liste_player, &id);
         fist_co = 1;
       }
       Client c;
-      if(!player_already_co){
+      if (!player_already_co) {
         c.sock = csock;
         c.player = p;
       } else {
@@ -129,26 +131,55 @@ static void app(void) {
           int c = read_client(clients[i].sock, buffer);
           /* client disconnected */
           if (c == 0) {
+            // gérer déconnexion pendant partie
+
+            // Player *player = clients[i].player;
+
+            // // Si le joueur était en partie, notifier l'adversaire
+            // if (player->status == Ingame) {
+            //   Client *opponent =
+            //   find_client_by_socket(player->opponent_socket,
+            //                                            clients, actual);
+            //   if (opponent) {
+            //     send_to_client_text(opponent,
+            //                         "Votre adversaire s'est déconnecté. Vous
+            //                         " "gagnez par forfait.");
+            //     opponent->player->status = Unocupied;
+            //     opponent->player->opponent_socket = -1;
+
+            //     Game *game = find_game_with_player(player, &list_games);
+            //     if (game) {
+            //       delete_game(game, &list_games);
+            //     }
+            //   }
+            // }
+
             closesocket(clients[i].sock);
             remove_client(clients, i, &actual);
+
           } else {
             Client *sender = &clients[i];
-            if(sender->player == 0){  //Si on a pas de player associé
-              connect_client_to_player(sender, buffer, clients, &players, &nombre_player, actual, &taille_liste_player, &id);
-            }
-            else{
-              switch (sender->player->status)
-              {
+            if (sender->player == 0) { // Si on a pas de player associé
+              connect_client_to_player(sender, buffer, clients, &players,
+                                       &nombre_player, actual,
+                                       &taille_liste_player, &id);
+            } else {
+              switch (sender->player->status) {
               case Waiting_for_opponent:
               case Challenge_pending:
-                Client* opponent = find_client_by_socket(sender->player->opponent_socket, clients, actual);
-                handle_challenge_response(sender, opponent ,buffer, clients, list_games);
+                Client *opponent = find_client_by_socket(
+                    sender->player->opponent_socket, clients, actual);
+                handle_challenge_response(sender, opponent, buffer, clients,
+                                          &list_games, &game_id);
                 break;
               case Unocupied:
-                analyse_command(&clients[i], buffer, clients, actual, list_games);
+                analyse_command(&clients[i], buffer, clients, actual,
+                                &list_games);
                 break;
               case Ingame:
-                handle_game_move(sender, buffer);
+                Client *opponent = find_client_by_socket(
+                    sender->player->opponent_socket, clients, actual);
+                handle_game_move(sender, opponent, buffer, &list_games);
                 break;
               case Waiting_for_conf_bio:
                 handle_bio_response(sender, buffer);
@@ -171,8 +202,10 @@ static void app(void) {
   end_connection(sock);
 }
 
-static Player* initialize_player(char* name, Player*** players, int* nombre_player, int* taille_liste_player, int* id){
-  Player* p = malloc(sizeof(Player));
+static Player *initialize_player(char *name, Player ***players,
+                                 int *nombre_player, int *taille_liste_player,
+                                 int *id) {
+  Player *p = malloc(sizeof(Player));
   p->elo = 0;
   p->gamePlayed = 0;
   p->gamesWon = 0;
@@ -180,23 +213,27 @@ static Player* initialize_player(char* name, Player*** players, int* nombre_play
   p->id = (*id)++;
   p->opponent_socket = -1;
   strncpy(p->name, name, NAME_SIZE);
-  strncpy(p->bio, " ", BIO_SIZE);  //Pour pouvoir parser plus simplement la save
+  strncpy(p->bio, " ", BIO_SIZE); // Pour pouvoir parser plus simplement la save
   add_player(players, p, nombre_player, taille_liste_player);
   return p;
 }
 
-static void connect_client_to_player(Client* sender, char* name, Client* clients, Player*** players, int* nombre_player, int nombre_client, int* taille_liste_player, int* id){
+static void connect_client_to_player(Client *sender, char *name,
+                                     Client *clients, Player ***players,
+                                     int *nombre_player, int nombre_client,
+                                     int *taille_liste_player, int *id) {
   int fist_co = 0;
   int player_already_co = 0;
-  Player *p = find_player_by_name(name, *players, *nombre_player);  
-  if (p != 0){
+  Player *p = find_player_by_name(name, *players, *nombre_player);
+  if (p != 0) {
     player_already_co = player_already_connected(p, clients, nombre_client);
   }
-  if (p == 0) {  //Si le nom est n'est associé à aucun players
-    p = initialize_player(name, players, nombre_player, taille_liste_player,id);
+  if (p == 0) { // Si le nom est n'est associé à aucun players
+    p = initialize_player(name, players, nombre_player, taille_liste_player,
+                          id);
     fist_co = 1;
   }
-  if (!player_already_co){
+  if (!player_already_co) {
     sender->player = p;
   }
   send_welcome_message(sender, fist_co, player_already_co);
@@ -244,7 +281,7 @@ static void send_unoccupied_clients(Client *clients, Client *sender,
 }
 
 static void analyse_command(Client *sender, const char *buffer, Client *clients,
-                            int actual, game_node *list_games) {
+                            int actual, game_node **list_games) {
   if (buffer[0] == '/') {
     if (strncmp(buffer, "/users", 6) == 0) {
       send_unoccupied_clients(clients, sender, actual);
@@ -256,7 +293,7 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
       }
       send_request_challenge(sender, receiver_name, clients, actual,
                              list_games);
-    } else if (strncmp(buffer, "/me", 3) == 0){
+    } else if (strncmp(buffer, "/me", 3) == 0) {
       send_to_client_player(sender, sender->player);
     } else {
       send_to_client_text(sender, "bad command");
@@ -266,7 +303,7 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
 
 static void send_request_challenge(Client *sender, char *receiver,
                                    Client *clients, int actual,
-                                   game_node *list_games) {
+                                   game_node **list_games) {
   Client *pClient = is_client_unocupied(clients, receiver, actual);
   char message[BUF_SIZE];
   message[0] = 0;
@@ -296,14 +333,14 @@ static void send_request_challenge(Client *sender, char *receiver,
 
 static void handle_challenge_response(Client *sender, Client *opponent,
                                       char *buffer, Client *clients,
-                                      game_node *list_games) {
+                                      game_node **list_games, int *game_id) {
 
   char message[BUF_SIZE];
   message[0] = 0;
 
   if ((strcmp(buffer, "Y") == 0 || strcmp(buffer, "y") == 0) &&
       sender->player->status == Challenge_pending) {
-    start_game(opponent, sender, list_games);
+    start_game(opponent, sender, list_games, game_id);
   } else if (strcmp(buffer, "N") == 0 || strcmp(buffer, "n") == 0) {
     message[0] = 0;
     sprintf(message, "%s  refused the challenge\n", sender->player->name);
@@ -312,11 +349,13 @@ static void handle_challenge_response(Client *sender, Client *opponent,
     send_to_client_text(sender, message);
     opponent->player->status = Unocupied;
     sender->player->status = Unocupied;
+    sender->player->opponent_socket = -1;
+    opponent->player->opponent_socket = -1;
   }
 }
 
-static void start_game(Client *client1, Client *client2,
-                       game_node *list_games) {
+static void start_game(Client *client1, Client *client2, game_node **list_games,
+                       int *game_id) {
   char message[BUF_SIZE];
   char buffer[BUF_SIZE];
   message[0] = 0;
@@ -327,26 +366,33 @@ static void start_game(Client *client1, Client *client2,
   client1->player->status = Ingame;
   client2->player->status = Ingame;
 
-  jeu_t *jeu = initGame(-1);
+  jeu_t *jeu = initGame(1);
 
   Game *game = malloc(sizeof(Game));
-  game->game_id = 0;
+  game->game_id = (*game_id)++;
   game->jeu = *jeu;
   game->player1 = client1->player;
   game->player2 = client2->player;
   game->playing = 1;
   game->winner = 0;
 
+  free(jeu);
+
   create_game(game, list_games);
 
-  send_to_client_game(client1, jeu);
-  send_to_client_game(client2, jeu);
+  send_to_client_clear(client1);
+  send_to_client_clear(client2);
 
-  srand(time(NULL));
-  int player = (rand() % 2);
-  int positionDemande = 0;
+  usleep(10000);
 
-  if (player + 1 == 1) {
+  send_to_client_game(client1, &game->jeu);
+  send_to_client_game(client2, &game->jeu);
+  // afficher(*jeu);
+
+  usleep(10000);
+
+  if (game->jeu.active_player == 1) {
+    // Pourquoi on voit pas ça ?
     send_to_client_text(client1, "C'est votre tour, donnez le numéro de la "
                                  "case que vous voulez jouer -> ");
     send_to_client_text(client2, "Ce n'est pas votre tour...\n");
@@ -355,83 +401,96 @@ static void start_game(Client *client1, Client *client2,
     send_to_client_text(client2, "C'est votre tour, donnez le numéro de la "
                                  "case que vous voulez jouer -> ");
   }
-
-  // while (jeu->j1Score < 24 || jeu->j2Score < 24) {
-  //   printf("coup pour le joueur %d", player + 1);
-  //   positionDemande = 0;
-  //     if (player + 1 == 1) {
-  //       send_to_client_text(client1, "C'est votre tour, donnez le numéro de
-  //       la "
-  //                                   "case que vous voulez jouer -> ");
-  //       send_to_client_text(client2, "Ce n'est pas votre tour...\n");
-  //       read_client(client1->sock, buffer);
-  //     } else {
-  //       send_to_client_text(client1, "Ce n'est pas votre tour...\n");
-  //       send_to_client_text(client2, "C'est votre tour, donnez le numéro de
-  //       la "
-  //                                   "case que vous voulez jouer -> ");
-  //       read_client(client2->sock, buffer);
-  //     }
-  //   sscanf(buffer, "%d", &positionDemande);
-  //   while (appliquerCoup(player, positionDemande, jeu)) {
-  //     if (player + 1 == 1) {
-  //       send_to_client_text(
-  //           client1,
-  //           "Le coup n'est pas autorisé, restez focus ! Nouvelle chance ->
-  //           ");
-  //       read_client(client1->sock, buffer);
-  //     } else {
-  //       send_to_client_text(
-  //           client2,
-  //           "Le coup n'est pas autorisé, restez focus ! Nouvelle chance ->
-  //           ");
-  //       read_client(client2->sock, buffer);
-  //     }
-  //     sscanf(buffer, "%d", &positionDemande);
-  //   };
-  //   afficher_jeu(*jeu, client1, client2);
-  //   player = (player + 1) % 2;
-  //}
 }
 
-static void handle_game_move(Client *sender, char *buffer) {
-  printf("%s joue : %s\n", sender->player->name, buffer);
+static void handle_game_move(Client *sender, Client *opponent, char *buffer,
+                             game_node **list_games) {
+  Game *game = find_game_with_player(sender->player, list_games);
+
+  if ((game->jeu.active_player == 1 &&
+       game->player1->id == sender->player->id) ||
+      (game->jeu.active_player == 2 &&
+       game->player2->id == sender->player->id)) {
+
+    int positionDemande = 0;
+    sscanf(buffer, "%d", &positionDemande);
+
+    if (appliquerCoup(game->jeu.active_player, positionDemande, &game->jeu) ==
+        0) {
+      if (game->jeu.j1Score >= 24 || game->jeu.j2Score >= 24) {
+        game->playing = 0;
+        game->winner = (game->jeu.j1Score > game->jeu.j2Score) ? 1 : 2;
+
+        char message[BUF_SIZE];
+        sprintf(message, "Fin de partie ! Gagnant : %s",
+                game->winner == 1 ? game->player1->name : game->player2->name);
+        send_to_client_text(sender, message);
+        send_to_client_text(opponent, message);
+
+        sender->player->status = Unocupied;
+        opponent->player->status = Unocupied;
+        sender->player->opponent_socket = -1;
+        opponent->player->opponent_socket = -1;
+
+        // delete_game(game, list_games);
+      }
+      game->jeu.active_player = (game->jeu.active_player == 1) ? 2 : 1;
+      printf("%s joue : %s\n", sender->player->name, buffer);
+      send_to_client_game(sender, &game->jeu);
+      send_to_client_game(opponent, &game->jeu);
+      // afficher(game->jeu);
+
+      usleep(10000); // Pour creer deux packets TCP distincts, 10ms de délai
+
+      send_to_client_text(opponent, "C'est votre tour, donnez le numéro de la "
+                                    "case que vous voulez jouer -> ");
+      send_to_client_text(sender, "Ce n'est pas votre tour...\n");
+
+    } else {
+      send_to_client_text(
+          sender,
+          "Le coup n'est pas autorisé, restez focus ! Nouvelle chance -> ");
+    }
+  } else {
+    send_to_client_text(sender, "Ce n'est pas à vous de jouer...");
+  };
 }
 
-static void send_welcome_message(Client *client, int first_co, int player_already_co) {
+static void send_welcome_message(Client *client, int first_co,
+                                 int player_already_co) {
   char message[BUF_SIZE];
   message[0] = 0;
-  if(!player_already_co){
+  if (!player_already_co) {
     sprintf(message,
             "Bonjour %s ! Bienvenue sur le meilleur seveur de awale. Içi, une "
             "seule règle : s'amuser !",
             client->player->name);
     if (first_co == 1) {
-      strncat(message,
-              "\nC'est votre première fois içi, voulez vous vous écrire une bio? "
-              "(Oui : Y, Non : N)",
-              sizeof(message) - strlen(message) - 1);
+      strncat(
+          message,
+          "\nC'est votre première fois içi, voulez vous vous écrire une bio? "
+          "(Oui : Y, Non : N)",
+          sizeof(message) - strlen(message) - 1);
       client->player->status = Waiting_for_conf_bio;
     }
-  }
-  else{
-    strcpy(message, "Ce player est déjà utilisé par un autre client...\nTester une prochaine fois ou avec un autre player : ");
+  } else {
+    strcpy(message, "Ce player est déjà utilisé par un autre client...\nTester "
+                    "une prochaine fois ou avec un autre player : ");
   }
   send_to_client_text(client, message);
 }
 
-static void handle_bio_response(Client* sender, char* buffer){
-  if(strcmp(buffer, "Y")==0 || strcmp(buffer, "y")==0){
+static void handle_bio_response(Client *sender, char *buffer) {
+  if (strcmp(buffer, "Y") == 0 || strcmp(buffer, "y") == 0) {
     sender->player->status = Writting_bio;
     send_to_client_text(sender, "Votre bio : ");
-  }
-  else if ((strcmp(buffer, "N")==0 || strcmp(buffer, "n")==0)){
+  } else if ((strcmp(buffer, "N") == 0 || strcmp(buffer, "n") == 0)) {
     sender->player->status = Unocupied;
     send_to_client_text(sender, "You don't have a bio ;(");
   }
 }
 
-static void handle_writting_bio(Client* sender,char* buffer){
+static void handle_writting_bio(Client *sender, char *buffer) {
   size_t len = strcspn(buffer, "\r\n"); // longueur sans fin de ligne
 
   if (len >= sizeof(sender->player->bio)) {
@@ -459,9 +518,9 @@ static Client *is_client_unocupied(Client *clients, char *client, int actual) {
   return 0;
 }
 
-static int player_already_connected(Player* p, Client* clients, int actual){
-  for(int i = 0; i<actual; i++){
-    if (p == clients[i].player){
+static int player_already_connected(Player *p, Client *clients, int actual) {
+  for (int i = 0; i < actual; i++) {
+    if (p == clients[i].player) {
       return 1;
     }
   }
@@ -500,11 +559,11 @@ static Client *find_client_by_socket(SOCKET sock, Client *clients,
   return 0;
 }
 
-static void save_players(Player** players, int nombre_player, int id){
-  Player* player_tmp;
-  FILE* file = fopen(SAVE_FILE, "a");
-  for (int i = 0; i<nombre_player; i++){
-    if (i>id){
+static void save_players(Player **players, int nombre_player, int id) {
+  Player *player_tmp;
+  FILE *file = fopen(SAVE_FILE, "a");
+  for (int i = 0; i < nombre_player; i++) {
+    if (i > id) {
       player_tmp = players[i];
       fprintf(file, "%d;", player_tmp->id);
       fprintf(file, "%s;", player_tmp->name);
@@ -517,29 +576,33 @@ static void save_players(Player** players, int nombre_player, int id){
   fclose(file);
 }
 
-static int load_players(Player*** players, int* nombre_player, int* taille_liste){
-  FILE* file = fopen(SAVE_FILE, "r");
+static int load_players(Player ***players, int *nombre_player,
+                        int *taille_liste) {
+  FILE *file = fopen(SAVE_FILE, "r");
   if (file == NULL) {
     printf("Error: file pointer is null.");
     exit(1);
   }
 
-  int id=-1;  //Si on charge aucun player : aucun players du tout donc prochain player -> id=0
+  int id = -1; // Si on charge aucun player : aucun players du tout donc
+               // prochain player -> id=0
   int maximum_line_length = sizeof(Player);
   char lineBuffer[maximum_line_length];
 
-  while (fgets(lineBuffer, maximum_line_length, file)){
+  while (fgets(lineBuffer, maximum_line_length, file)) {
     lineBuffer[strcspn(lineBuffer, "\r\n")] = '\0';
-    if (lineBuffer[0] == '\0'){continue;}
+    if (lineBuffer[0] == '\0') {
+      continue;
+    }
 
-    char* id_str = strtok(lineBuffer, ";");
-    char* name = strtok(NULL, ";");
-    char* bio = strtok(NULL, ";");
-    char* played_str = strtok(NULL, ";");
-    char* won_str = strtok(NULL, ";");
-    char* elo_str = strtok(NULL, ";");
+    char *id_str = strtok(lineBuffer, ";");
+    char *name = strtok(NULL, ";");
+    char *bio = strtok(NULL, ";");
+    char *played_str = strtok(NULL, ";");
+    char *won_str = strtok(NULL, ";");
+    char *elo_str = strtok(NULL, ";");
 
-    Player* p = (Player*)malloc(sizeof(Player));
+    Player *p = (Player *)malloc(sizeof(Player));
     strncpy(p->name, name, NAME_SIZE);
     strncpy(p->bio, bio, BIO_SIZE);
     p->gamePlayed = atoi(played_str);
@@ -553,7 +616,7 @@ static int load_players(Player*** players, int* nombre_player, int* taille_liste
 
     id = p->id;
   }
-  //afficher_players(*nombre_player, *players);
+  // afficher_players(*nombre_player, *players);
   fclose(file);
   return id;
 }

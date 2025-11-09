@@ -17,6 +17,7 @@
 
 void send_to_client_text(Client *client, const char *message);
 void send_to_client_game(Client *client, jeu_t *game);
+void send_to_client_clear(Client *client);
 
 // Fonctions du prof
 

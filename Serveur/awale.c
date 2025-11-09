@@ -37,11 +37,13 @@
 
 jeu_t *initGame(int rotation) {
   jeu_t *jeu = malloc(sizeof(jeu_t));
+  srand(time(NULL));
   for (int i = 0; i < 12; i++) {
     jeu->plateau[i] = 4;
   }
   jeu->j1Score = jeu->j2Score = 0;
   jeu->rotation = rotation;
+  jeu->active_player = (rand() % 2) + 1;
   return jeu;
 }
 
@@ -67,10 +69,10 @@ int appliquerCoup(int numeroJoueur, int position, jeu_t *jeu) {
   if (position < 1 || position > 6) {
     return 1;
   }
-  if (numeroJoueur == 0) {
+  if (numeroJoueur == 1) {
     position = position - 1;
   }
-  if (numeroJoueur == 1) {
+  if (numeroJoueur == 2) {
     position = 12 - position;
   }
 
@@ -115,10 +117,10 @@ int positionCampAdverse(int position, int numeroJoueur) {
 }
 
 void augmenterScore(int numeroJoueur, int graines, jeu_t *jeu) {
-  if (numeroJoueur == 0) {
+  if (numeroJoueur == 1) {
     jeu->j1Score += graines;
   }
-  if (numeroJoueur == 1) {
+  if (numeroJoueur == 2) {
     jeu->j2Score += graines;
   }
 }
