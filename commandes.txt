@@ -5,3 +5,4 @@
 /bio -> change your bio
 /player {name} -> info on the player
 /spectate {name} -> spectate player's current game of awale
+/chat {name} message -> send the message to the player name (if unocupied)

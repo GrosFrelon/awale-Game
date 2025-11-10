@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 
 #include "liste_chaine.h"
 #include "server.h"
@@ -358,15 +359,52 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
           "\n\t- /challenge <name> : challenge player to a game of awale"
           "\n\t- /spectate <name> : spectate player's current game of awale"
           "\n\t- /bio : you want to rewrite your bio"
+          "\n\t- /chat {name} {message} : send the message to the player name (if unocupied)"
           "\n\n");
     } else if (strncmp(buffer, "/bio", 4) == 0) {
       sender->player->status = Writting_bio;
       send_to_client_text(sender, "Votre bio : ");
+    } else if (strncmp(buffer, "/chat", 5) == 0){
+      const char *p = buffer + 5;
+      send_message_other(sender, p, clients, actual);
     } else {
-      send_to_client_text(sender,
-                          "bad command, type /help for help on commands\n");
+    send_to_client_text(sender, "bad command, type /help for help on commands\n");
     }
   }
+}
+
+static void send_message_other(Client* sender, const char* buffer, Client* clients, int actual){
+  char receiver[NAME_SIZE];
+  int off = 0;
+
+  while (*buffer && isspace((unsigned char)*buffer)) buffer++;  // enlève espaces après /chat
+
+  if (sscanf(buffer, "%s %n", receiver, &off) != 1) {        // name, puis offset jusqu'au msg
+    send_to_client_text(sender, "Usage: /chat <name> <message>\n");
+    return;
+  }
+
+  const char *msg = buffer + off;
+  while (*msg && isspace((unsigned char)*msg)) msg++;   //enlève les espaces du début du message
+  if (*msg == '\0') {
+    send_to_client_text(sender, "Message required\n");
+    return;
+  }
+
+  Client *rcv = find_client_by_name(clients, receiver, actual);
+  if (!rcv) { send_to_client_text(sender, "Player not found\n"); return; }
+  if (rcv->sock == sender->sock) { send_to_client_text(sender, "Cannot chat with yourself\n"); return; }
+  if (rcv->player->status != Unocupied) { 
+    char message[BUF_SIZE];
+    sprintf(message, "%s is occupied, try again later\n", rcv->player->name);
+    send_to_client_text(sender, message); 
+    return; 
+  }
+
+  char out[BUF_SIZE];
+  snprintf(out, sizeof out, "%s: %s\n", sender->player->name, msg);
+  send_to_client_text(rcv, out);
+  return;
 }
 
 static void send_request_challenge(Client *sender, char *receiver,
@@ -576,13 +614,13 @@ static void send_welcome_message(Client *client, int first_co,
   message[0] = 0;
   if (!player_already_co) {
     sprintf(message,
-            "Bonjour %s ! Bienvenue sur le meilleur seveur de awale. Içi, une "
+            "Bonjour %s ! Bienvenue sur le meilleur seveur de awale. Ici, une "
             "seule règle : s'amuser !\n",
             client->player->name);
     if (first_co == 1) {
       strncat(
           message,
-          "\nC'est votre première fois içi, voulez vous vous écrire une bio? "
+          "\nC'est votre première fois ici, voulez vous vous écrire une bio? "
           "(Oui : Y, Non : N)",
           sizeof(message) - strlen(message) - 1);
       client->player->status = Waiting_for_conf_bio;

@@ -89,5 +89,6 @@ static void save_players(Player **players, int nombre_player);
 static int load_players(Player ***players, int *nombre_player,
                         int *taille_liste);
 static void quit_watching(Client *sender);
+static void send_message_other(Client* sender, const char* buffer, Client* clients, int actual);
 
 #endif /* guard */
