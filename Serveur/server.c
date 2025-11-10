@@ -346,7 +346,7 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
       } else {
         send_to_client_player(sender, found_player);
       }
-    } else if (strncmp(buffer, "/help", 3) == 0) {
+    } else if (strncmp(buffer, "/help", 5) == 0) {
       send_to_client_text(
           sender,
           "Awale Game by Raphaël LETOURNEUR and Alois PINTO DE SILVA -- "
@@ -357,7 +357,11 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
           "\n\t- /player <name> : display information about a player"
           "\n\t- /challenge <name> : challenge player to a game of awale"
           "\n\t- /spectate <name> : spectate player's current game of awale"
+          "\n\t- /bio : you want to rewrite your bio"
           "\n\n");
+    } else if (strncmp(buffer, "/bio", 4) == 0) {
+      sender->player->status = Writting_bio;
+      send_to_client_text(sender, "Votre bio : ");
     } else {
       send_to_client_text(sender,
                           "bad command, type /help for help on commands\n");
@@ -477,6 +481,14 @@ static void start_game(Client *client1, Client *client2, game_node **list_games,
 static void handle_game_move(Client *sender, Client *opponent, char *buffer,
                              game_node **list_games) {
   Game *game = find_game_with_player(sender->player, list_games);
+
+  if (strncmp(buffer, "!", 1) == 0){  //Send a chat
+    char message[BUF_SIZE];
+    sprintf(message, "%s : %s\n",
+                sender->player->name, buffer+1);
+    send_to_client_text(opponent, message);
+    return;
+  }
 
   if ((game->jeu.active_player == 1 &&
        game->player1->id == sender->player->id) ||

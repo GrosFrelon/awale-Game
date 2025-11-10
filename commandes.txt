@@ -1,3 +1,7 @@
 /users -> liste des joueurs connectés
 /games -> liste des parties en cours
 /me -> infos on me 
+/challenge {name} -> challenge an other user unocupied
+/bio -> change your bio
+/player {name} -> info on the player
+/spectate {name} -> spectate player's current game of awale
