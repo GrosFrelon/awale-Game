@@ -1,9 +1,9 @@
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <ctype.h>
 
 #include "liste_chaine.h"
 #include "server.h"
@@ -167,6 +167,7 @@ static void app(void) {
                   }
                 }
                 player->status = Unocupied;
+                player->opponent_socket = -1;
               }
             }
 
@@ -362,46 +363,58 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
           "\n\t- /challenge <name> : challenge player to a game of awale"
           "\n\t- /spectate <name> : spectate player's current game of awale"
           "\n\t- /bio : you want to rewrite your bio"
-          "\n\t- /chat {name} {message} : send the message to the player name (if unocupied)"
+          "\n\t- /chat <name> <message> : send the message to the player name "
+          "(if unocupied)"
           "\n\n");
     } else if (strncmp(buffer, "/bio", 4) == 0) {
       sender->player->status = Writting_bio;
       send_to_client_text(sender, "Votre bio : ");
-    } else if (strncmp(buffer, "/chat", 5) == 0){
+    } else if (strncmp(buffer, "/chat", 5) == 0) {
       const char *p = buffer + 5;
       send_message_other(sender, p, clients, actual);
     } else {
-    send_to_client_text(sender, "bad command, type /help for help on commands\n");
+      send_to_client_text(sender,
+                          "bad command, type /help for help on commands\n");
     }
   }
 }
 
-static void send_message_other(Client* sender, const char* buffer, Client* clients, int actual){
+static void send_message_other(Client *sender, const char *buffer,
+                               Client *clients, int actual) {
   char receiver[NAME_SIZE];
   int off = 0;
 
-  while (*buffer && isspace((unsigned char)*buffer)) buffer++;  // enlève espaces après /chat
+  while (*buffer && isspace((unsigned char)*buffer))
+    buffer++; // enlève espaces après /chat
 
-  if (sscanf(buffer, "%s %n", receiver, &off) != 1) {        // name, puis offset jusqu'au msg
+  if (sscanf(buffer, "%s %n", receiver, &off) !=
+      1) { // name, puis offset jusqu'au msg
     send_to_client_text(sender, "Usage: /chat <name> <message>\n");
     return;
   }
 
   const char *msg = buffer + off;
-  while (*msg && isspace((unsigned char)*msg)) msg++;   //enlève les espaces du début du message
+  while (*msg && isspace((unsigned char)*msg))
+    msg++; // enlève les espaces du début du message
   if (*msg == '\0') {
     send_to_client_text(sender, "Message required\n");
     return;
   }
 
   Client *rcv = find_client_by_name(clients, receiver, actual);
-  if (!rcv) { send_to_client_text(sender, "Player not found\n"); return; }
-  if (rcv->sock == sender->sock) { send_to_client_text(sender, "Cannot chat with yourself\n"); return; }
-  if (rcv->player->status != Unocupied) { 
+  if (!rcv) {
+    send_to_client_text(sender, "Player not found\n");
+    return;
+  }
+  if (rcv->sock == sender->sock) {
+    send_to_client_text(sender, "Cannot chat with yourself\n");
+    return;
+  }
+  if (rcv->player->status != Unocupied) {
     char message[BUF_SIZE];
     sprintf(message, "%s is occupied, try again later\n", rcv->player->name);
-    send_to_client_text(sender, message); 
-    return; 
+    send_to_client_text(sender, message);
+    return;
   }
 
   char out[BUF_SIZE];
@@ -523,11 +536,38 @@ static void handle_game_move(Client *sender, Client *opponent, char *buffer,
                              game_node **list_games) {
   Game *game = find_game_with_player(sender->player, list_games);
 
-  if (strncmp(buffer, "!", 1) == 0){  //Send a chat
+  if (strncmp(buffer, "!", 1) == 0) { // Send a chat
     char message[BUF_SIZE];
-    sprintf(message, "%s : %s\n",
-                sender->player->name, buffer+1);
+    sprintf(message, "%s : %s\n", sender->player->name, buffer + 1);
     send_to_client_text(opponent, message);
+    return;
+  }
+  if (strncmp(buffer, "q", 1) == 0) { // Resign
+    char message[BUF_SIZE];
+    sprintf(message, "%s a abandonné. Vous gagnez par forfait.\n",
+            sender->player->name);
+    send_to_client_text(opponent, message);
+    send_to_client_text(sender, "Vous avez abandonné. Vous "
+                                "perdez par forfait.\n");
+    opponent->player->status = Unocupied;
+    opponent->player->opponent_socket = -1;
+    sender->player->status = Unocupied;
+    sender->player->opponent_socket = -1;
+
+    sender->player->gamesPlayed++;
+    opponent->player->gamesPlayed++;
+    opponent->player->gamesWon++;
+    if (game) {
+      int nb_watchers = game->nb_watchers;
+      for (int i = 0; i < nb_watchers; i++) {
+        char message[BUF_SIZE];
+        sprintf(message, "%s a abandonné. Vicoire de %s !\n",
+                sender->player->name, opponent->player->name);
+        send_to_client_text(game->watchers[i], message);
+        quit_watching(game->watchers[i]);
+      }
+      delete_game(game, list_games);
+    }
     return;
   }
 
