@@ -48,6 +48,6 @@ static void afficher_jeu(jeu_t jeu);
 static void afficher_jeu_ascii_art(jeu_t jeu);
 // static void afficher_buffer(char *buffer, int n);
 static void afficher_player(Player player);
-static void process_server_message(SOCKET sock);
+static int process_server_message(SOCKET sock);
 
 #endif /* guard */

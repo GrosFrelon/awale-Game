@@ -31,6 +31,28 @@ static void app(const char *address, const char *name) {
   /* send our name */
   write_server(sock, name);
 
+  printf(
+
+      "\n.---------------------------------------------------------------.\n"
+      "|                                                               |\n"
+      "|   ________  ___       __   ________  ___       _______        |\n"
+      "|  |\\   __  \\|\\  \\     |\\  \\|\\   __  \\|\\  \\     |\\  ___ \\   "
+      "    |\n"
+      "|  \\ \\  \\|\\  \\ \\  \\    \\ \\  \\ \\  \\|\\  \\ \\  \\    \\ \\   "
+      "__/|      |\n"
+      "|   \\ \\   __  \\ \\  \\  __\\ \\  \\ \\   __  \\ \\  \\    \\ \\  "
+      "\\_|/__    |\n"
+      "|    \\ \\  \\ \\  \\ \\  \\|\\__\\_\\  \\ \\  \\ \\  \\ \\  \\____\\ "
+      "\\  \\_|\\ \\   |\n"
+      "|     \\ \\__\\ \\__\\ \\____________\\ \\__\\ \\__\\ \\_______\\ "
+      "\\_______\\  |\n"
+      "|      \\|__|\\|__|\\|____________|\\|__|\\|__|\\|_______|\\|_______|  "
+      "|\n"
+      "|                                                               |\n"
+      "'---------------------------------------------------------------'\n\n"
+
+  );
+
   while (1) {
     FD_ZERO(&rdfs);
 
@@ -60,14 +82,9 @@ static void app(const char *address, const char *name) {
       }
       write_server(sock, buffer);
     } else if (FD_ISSET(sock, &rdfs)) {
-      // int n = read_server(sock, buffer);
-      // /* server down */
-      // if (n == 0) {
-      //   printf("Server disconnected !\n");
-      //   break;
-      // }
-      // afficher_buffer(buffer, n);
-      process_server_message(sock);
+      if (process_server_message(sock)) {
+        break;
+      };
     }
   }
 
@@ -193,15 +210,15 @@ static void afficher_player(Player player) {
   printf("Nombre de games jouées : %d\n", player.gamesPlayed);
 }
 
-static void process_server_message(SOCKET sock) {
+static int process_server_message(SOCKET sock) {
   char buffer[BUF_SIZE];
   char msg_type;
 
   int len = receive_message(sock, buffer, sizeof(buffer), &msg_type);
 
   if (len < 0) {
-    fprintf(stderr, "Erreur de réception\n");
-    return;
+    fprintf(stderr, "Erreur de réception, problème de serveur\n");
+    return 1;
   }
 
   switch (msg_type) {
@@ -247,6 +264,7 @@ static void process_server_message(SOCKET sock) {
     fprintf(stderr, "Type de message inconnu: '%c'\n", msg_type);
     break;
   }
+  return 0;
 }
 
 // static void afficher_buffer(char *buffer, int n) {

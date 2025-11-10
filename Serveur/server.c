@@ -76,7 +76,7 @@ static void app(void) {
     /* something from standard input : i.e keyboard */
     if (FD_ISSET(STDIN_FILENO, &rdfs)) {
       save_players(players, nombre_player);
-      for (int i = 0; i<nombre_player; i++){
+      for (int i = 0; i < nombre_player; i++) {
         free(players[i]);
       }
       free(players);
