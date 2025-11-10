@@ -40,7 +40,7 @@ jeu_t *initGame(int rotation, char *namePlayer1, char *namePlayer2) {
   jeu_t *jeu = malloc(sizeof(jeu_t));
   srand(time(NULL));
   for (int i = 0; i < 12; i++) {
-    jeu->plateau[i] = 4;
+    jeu->plateau[i] = 1;
   }
   jeu->j1Score = jeu->j2Score = 0;
   jeu->rotation = rotation;
@@ -81,12 +81,21 @@ int appliquerCoup(int numeroJoueur, int position, jeu_t *jeu) {
 
   // position = position initiale
 
-  // On enlève les graines
-  nbGrainesRecuperees = jeu->plateau[position];
-  if (nbGrainesRecuperees == 0) {
-    return 1;
+  // on travaille sur une copie du plateau pour verifier que le coup est bon
+
+  int copie_plateau[12];
+  for (int i = 0; i < 12; i++) {
+    copie_plateau[i] = jeu->plateau[i];
   }
-  jeu->plateau[position] = 0;
+
+  // On enlève les graines
+  nbGrainesRecuperees = copie_plateau[position];
+  if (nbGrainesRecuperees == 0) {
+    return 2;
+  }
+  copie_plateau[position] = 0;
+  int points_gagnes_1 = 0;
+  int points_gagnes_2 = 0;
 
   // On sème les graines
   // nbGraineRecup%12 pour compenser les sauts de la case ou l'on a recup les
@@ -101,38 +110,59 @@ int appliquerCoup(int numeroJoueur, int position, jeu_t *jeu) {
     indiceParcours =
         ((i % 12) + 12) % 12; // toujours un nombre positif entre 0 et 12
     if (indiceParcours != position) {
-      jeu->plateau[indiceParcours]++;
+      copie_plateau[indiceParcours]++;
     }
   }
 
   // Récupère les graines
-  while ((jeu->plateau[indiceParcours] == 2 ||
-          jeu->plateau[indiceParcours] == 3) &&
+  while ((copie_plateau[indiceParcours] == 2 ||
+          copie_plateau[indiceParcours] == 3) &&
          positionCampAdverse(indiceParcours, numeroJoueur)) {
-    augmenterScore(numeroJoueur, jeu->plateau[indiceParcours], jeu);
-    jeu->plateau[indiceParcours] = 0;
+    if (numeroJoueur == 1) {
+      points_gagnes_1 += copie_plateau[indiceParcours];
+    } else {
+      points_gagnes_2 += copie_plateau[indiceParcours];
+    }
+    copie_plateau[indiceParcours] = 0;
     indiceParcours -= jeu->rotation; // retourne en arrière du sens de rotation
-                                     // pour recup les graines
+    // pour recup les graines
   }
+
+  if (numeroJoueur == 1) {
+    int graines2 = 0;
+    for (int i = 6; i < 12; i++) {
+      graines2 += copie_plateau[i];
+    }
+    if (graines2 == 0) {
+      return 3;
+    }
+  } else {
+    int graines1 = 0;
+    for (int i = 0; i < 6; i++) {
+      graines1 += copie_plateau[i];
+    }
+    if (graines1 == 0) {
+      return 3;
+    }
+  }
+
+  for (int i = 0; i < 12; i++) {
+    jeu->plateau[i] = copie_plateau[i];
+  }
+
+  jeu->j1Score += points_gagnes_1;
+  jeu->j2Score += points_gagnes_2;
   return 0;
 }
 
 // Return 1 si on est dans le camp adverse
 int positionCampAdverse(int position, int numeroJoueur) {
-  if (position < 0 || position > 11) return 0;
-  if (numeroJoueur == 1) {          // camp adverse = 6..11
+  if (position < 0 || position > 11)
+    return 0;
+  if (numeroJoueur == 1) { // camp adverse = 6..11
     return position >= 6 && position <= 11;
-  } else if (numeroJoueur == 2) {   // camp adverse = 0..5
+  } else if (numeroJoueur == 2) { // camp adverse = 0..5
     return position >= 0 && position <= 5;
   }
   return 0;
-}
-
-void augmenterScore(int numeroJoueur, int graines, jeu_t *jeu) {
-  if (numeroJoueur == 1) {
-    jeu->j1Score += graines;
-  }
-  if (numeroJoueur == 2) {
-    jeu->j2Score += graines;
-  }
 }

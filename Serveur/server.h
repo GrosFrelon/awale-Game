@@ -54,6 +54,7 @@ static void send_request_challenge(Client *sender, char *receiver,
                                    game_node **list_games);
 static void start_game(Client *client1, Client *client2, game_node **list_games,
                        int *game_id);
+static int partieTerminee(Game *game);
 static void send_welcome_message(Client *client, int first_co,
                                  int player_already_co);
 static Client *find_client_by_name(Client *clients, char *client, int actual);

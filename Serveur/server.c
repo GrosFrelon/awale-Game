@@ -11,7 +11,6 @@
 
 #include "client.h"
 #include "game.h"
-#include "liste_chaine.h"
 
 static void init(void) {
 #ifdef WIN32
@@ -536,12 +535,14 @@ static void handle_game_move(Client *sender, Client *opponent, char *buffer,
     int positionDemande = 0;
     sscanf(buffer, "%d", &positionDemande);
 
-    if (appliquerCoup(game->jeu.active_player, positionDemande, &game->jeu) ==
-        0) {
-      // if (game->jeu.j1Score >= 24 || game->jeu.j2Score >= 24) {
-      if (game->jeu.j1Score >= 2 || game->jeu.j2Score >= 2) {
+    int resultatCoup =
+        appliquerCoup(game->jeu.active_player, positionDemande, &game->jeu);
+
+    if (resultatCoup == 0) {
+      int winner = partieTerminee(game);
+      if (winner != 0) {
         game->playing = 0;
-        game->winner = (game->jeu.j1Score > game->jeu.j2Score) ? 1 : 2;
+        game->winner = winner;
 
         char message[BUF_SIZE];
         sprintf(message, "Fin de partie ! Gagnant : %s\n",
@@ -598,6 +599,17 @@ static void handle_game_move(Client *sender, Client *opponent, char *buffer,
                             "case que vous voulez jouer -> ");
         send_to_client_text(sender, "Ce n'est pas votre tour...\n");
       }
+    } else if (resultatCoup == 1) {
+      send_to_client_text(sender, "Le coup n'est pas autorisé (pas entre 1 et "
+                                  "6), restez focus ! Nouvelle chance -> ");
+    } else if (resultatCoup == 2) {
+      send_to_client_text(sender, "Le coup n'est pas autorisé (case à 0), "
+                                  "restez focus ! Nouvelle chance -> ");
+    } else if (resultatCoup == 3) {
+      send_to_client_game(sender, &game->jeu);
+      send_to_client_text(sender,
+                          "Le coup n'est pas autorisé (vous affamez l'autre "
+                          "joueur), restez focus ! Nouvelle chance -> ");
     } else {
       send_to_client_text(
           sender,
@@ -606,6 +618,50 @@ static void handle_game_move(Client *sender, Client *opponent, char *buffer,
   } else {
     send_to_client_text(sender, "Ce n'est pas à vous de jouer...\n");
   };
+}
+
+static int partieTerminee(
+    Game *game) { // 0 -> partie en cours, 1 -> j1 gagne, 2 -> j2 gagne
+  if (game->jeu.j1Score >= 24 || game->jeu.j2Score >= 24) {
+    return game->jeu.j1Score > game->jeu.j2Score ? 1 : 2;
+  }
+  int graines1 = 0;
+  for (int i = 0; i < 6; i++) {
+    graines1 += game->jeu.plateau[i];
+  }
+  if (graines1 == 0) {
+    int peut_nourrir = 0;
+    for (int i = 6; i < 12; i++) {
+      if ((game->jeu.rotation == -1 && game->jeu.plateau[i] > i - 6) ||
+          (game->jeu.rotation == 1 && game->jeu.plateau[i] >= 12 - i)) {
+        peut_nourrir = 1;
+      }
+    }
+    if (peut_nourrir == 0) {
+      return 2; // le joueur 2 ne peut pas nourrir le joueur 1 qui n'a plus de
+                // graines
+    }
+  }
+
+  int graines2 = 0;
+  for (int i = 6; i < 12; i++) {
+    graines2 += game->jeu.plateau[i];
+  }
+  if (graines2 == 0) {
+    int peut_nourrir = 0;
+    for (int i = 0; i < 6; i++) {
+      if ((game->jeu.rotation == -1 && game->jeu.plateau[i] > i) ||
+          (game->jeu.rotation == 1 && game->jeu.plateau[i] >= 6 - i)) {
+        peut_nourrir = 1;
+      }
+    }
+    if (peut_nourrir == 0) {
+      return 1; // le joueur 1 ne peut pas nourrir le joueur 2 qui n'a plus de
+                // graines
+    }
+  }
+
+  return 0;
 }
 
 static void send_welcome_message(Client *client, int first_co,
