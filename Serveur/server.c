@@ -588,7 +588,7 @@ static void handle_bio_response(Client *sender, char *buffer) {
     send_to_client_text(sender, "Votre bio : ");
   } else if ((strcmp(buffer, "N") == 0 || strcmp(buffer, "n") == 0)) {
     sender->player->status = Unocupied;
-    send_to_client_text(sender, "You don't have a bio ;(");
+    send_to_client_text(sender, "Vous n'avez pas de bio ;(\n");
   }
 }
 
@@ -604,7 +604,7 @@ static void handle_writting_bio(Client *sender, char *buffer) {
 
   sender->player->status = Unocupied;
 
-  send_to_client_text(sender, "Bio enregistrée.");
+  send_to_client_text(sender, "Bio enregistrée.\n");
 }
 
 static void quit_watching(Client *sender) {
@@ -760,8 +760,7 @@ static int load_players(Player ***players, int *nombre_player,
                         int *taille_liste) {
   FILE *file = fopen(SAVE_FILE, "r");
   if (file == NULL) {
-    printf("Error: file pointer is null.");
-    exit(1);
+    return 1;
   }
 
   int id = -1; // Si on charge aucun player : aucun players du tout donc
