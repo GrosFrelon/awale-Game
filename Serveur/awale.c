@@ -40,7 +40,7 @@ jeu_t *initGame(int rotation, char *namePlayer1, char *namePlayer2) {
   jeu_t *jeu = malloc(sizeof(jeu_t));
   srand(time(NULL));
   for (int i = 0; i < 12; i++) {
-    jeu->plateau[i] = 1;
+    jeu->plateau[i] = 4;
   }
   jeu->j1Score = jeu->j2Score = 0;
   jeu->rotation = rotation;
