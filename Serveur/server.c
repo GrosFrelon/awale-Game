@@ -468,10 +468,6 @@ static void start_game(Client *client1, Client *client2, game_node **list_games,
   char message[BUF_SIZE];
   char buffer[BUF_SIZE];
   message[0] = 0;
-  sprintf(message, "New game started between %s (Player 1) and %s (Player 2)",
-          client1->player->name, client2->player->name);
-  send_to_client_text(client1, message);
-  send_to_client_text(client2, message);
   client1->player->status = Ingame;
   client2->player->status = Ingame;
 
@@ -495,7 +491,7 @@ static void start_game(Client *client1, Client *client2, game_node **list_games,
   send_to_client_clear(client1);
   send_to_client_clear(client2);
 
-  sprintf(message, "New game started between %s (Player 1) and %s (Player 2)",
+  sprintf(message, "New game started between %s (Player 1) and %s (Player 2)\n",
           client1->player->name, client2->player->name);
   send_to_client_text(client1, message);
   send_to_client_text(client2, message);
@@ -734,8 +730,8 @@ static void send_welcome_message(Client *client, int first_co,
     strcpy(message, "Ce player est déjà utilisé par un autre client...\nTester "
                     "une prochaine fois ou avec un autre player : ");
   }
-  send_to_client_text(client, message);
   send_help_to_client(client);
+  send_to_client_text(client, message);
 }
 
 static void send_help_to_client(Client *client) {
