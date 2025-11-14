@@ -4,7 +4,8 @@
 #include "constants.h"
 #include "types.h"
 
-typedef struct _Game Game;
+typedef struct _Game
+    Game; // declaration anticipee a cause des problemes d'include circulaires
 
 enum status_player {
   Unocupied,            // 0

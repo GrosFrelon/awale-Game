@@ -47,23 +47,6 @@ static int send_with_length(SOCKET sock, char type, const void *data,
   return result;
 }
 
-// void send_to_client_text(Client *client, const char *message) {
-//   size_t len = strlen(message);
-//   char *buf = malloc(len + 2);
-//   if (!buf) {
-//     perror("malloc");
-//     exit(errno);
-//   }
-
-//   buf[0] = '0';
-//   memcpy(buf + 1, message, len);
-//   if (send(client->sock, buf, len + 1, 0) < 0) {
-//     perror("send()");
-//     exit(errno);
-//   }
-//   free(buf);
-// }
-
 void send_to_client_text(Client *client, const char *message) {
   size_t len = strlen(message);
   if (send_with_length(client->sock, '0', message, len) < 0) {
@@ -71,60 +54,17 @@ void send_to_client_text(Client *client, const char *message) {
   }
 }
 
-// void send_to_client_game(Client *client, jeu_t *game) {
-//   size_t len = sizeof(jeu_t);
-//   char *buf = malloc(len + 1);
-//   if (!buf) {
-//     perror("malloc");
-//     exit(errno);
-//   }
-
-//   buf[0] = '1';
-//   memcpy(buf + 1, game, len);
-
-//   if (send(client->sock, buf, sizeof(jeu_t) + 1, 0) < 0) {
-//     perror("send()");
-//     exit(errno);
-//   }
-//   free(buf);
-// }
-
 void send_to_client_game(Client *client, jeu_t *game) {
   if (send_with_length(client->sock, '1', game, sizeof(jeu_t)) < 0) {
     fprintf(stderr, "Erreur lors de l'envoi du jeu au client\n");
   }
 }
 
-// void send_to_client_player(Client *client, Player *player) {
-//   size_t len = sizeof(Player);
-//   char *buf = malloc(len + 1);
-//   if (!buf) {
-//     perror("malloc");
-//     exit(errno);
-//   }
-
-//   buf[0] = '2';
-//   memcpy(buf + 1, player, len);
-
-//   if (send(client->sock, buf, sizeof(Player) + 1, 0) < 0) {
-//     perror("send()");
-//     exit(errno);
-//   }
-//   free(buf);
-// }
-
 void send_to_client_player(Client *client, Player *player) {
   if (send_with_length(client->sock, '2', player, sizeof(Player)) < 0) {
     fprintf(stderr, "Erreur lors de l'envoi du joueur au client\n");
   }
 }
-
-// void send_to_client_clear(Client *client) {
-//   if (send(client->sock, "3", sizeof(jeu_t) + 1, 0) < 0) {
-//     perror("send()");
-//     exit(errno);
-//   }
-// }
 
 void send_to_client_clear(Client *client) {
   if (send_with_length(client->sock, '3', NULL, 0) < 0) {

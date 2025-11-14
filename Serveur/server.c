@@ -29,9 +29,6 @@ static void end(void) {
 #endif
 }
 
-static unsigned int g_next_id =
-    1; // TODO, changer pour que ca redémarre pas à 1 à chaque redemarage
-
 static void app(void) {
   SOCKET sock = init_connection();
   char buffer[BUF_SIZE];
@@ -352,20 +349,7 @@ static void analyse_command(Client *sender, const char *buffer, Client *clients,
         send_to_client_player(sender, found_player);
       }
     } else if (strncmp(buffer, "/help", 5) == 0) {
-      send_to_client_text(
-          sender,
-          "Awale Game by Raphaël LETOURNEUR and Alois PINTO DE SILVA -- "
-          "WINNEFELD\n\n"
-          "Available commands : "
-          "\n\t- /me : display information about yourself"
-          "\n\t- /users : display a list of all users"
-          "\n\t- /player <name> : display information about a player"
-          "\n\t- /challenge <name> : challenge player to a game of awale"
-          "\n\t- /spectate <name> : spectate player's current game of awale"
-          "\n\t- /bio : you want to rewrite your bio"
-          "\n\t- /chat <name> <message> : send the message to the player name "
-          "(if unocupied)"
-          "\n\n");
+      send_help_to_client(sender);
     } else if (strncmp(buffer, "/bio", 4) == 0) {
       sender->player->status = Writting_bio;
       send_to_client_text(sender, "Votre bio : ");
@@ -511,8 +495,15 @@ static void start_game(Client *client1, Client *client2, game_node **list_games,
   send_to_client_clear(client1);
   send_to_client_clear(client2);
 
+  sprintf(message, "New game started between %s (Player 1) and %s (Player 2)",
+          client1->player->name, client2->player->name);
+  send_to_client_text(client1, message);
+  send_to_client_text(client2, message);
+
   send_to_client_game(client1, &game->jeu);
   send_to_client_game(client2, &game->jeu);
+  send_game_help_to_client(client1);
+  send_game_help_to_client(client2);
   for (int i = 0; i < game->nb_watchers; i++) {
     send_to_client_clear(game->watchers[i]);
     sprintf(message, "You are spectating. Send any key to stop.\n\n");
@@ -530,6 +521,16 @@ static void start_game(Client *client1, Client *client2, game_node **list_games,
     send_to_client_text(client2, "C'est votre tour, donnez le numéro de la "
                                  "case que vous voulez jouer -> ");
   }
+}
+
+static void send_game_help_to_client(Client *client) {
+  send_to_client_text(client,
+                      "\nAvailable commands : "
+                      "\n\t- any number to play"
+                      "\n\t- !<message> : send a message to the other player"
+                      "\n\t- q : resign the game"
+                      "\n\t- ? : display this help message"
+                      "\n\n");
 }
 
 static void handle_game_move(Client *sender, Client *opponent, char *buffer,
@@ -568,6 +569,10 @@ static void handle_game_move(Client *sender, Client *opponent, char *buffer,
       }
       delete_game(game, list_games);
     }
+    return;
+  }
+  if (strncmp(buffer, "?", 1) == 0) { // Help
+    send_game_help_to_client(sender);
     return;
   }
 
@@ -730,6 +735,24 @@ static void send_welcome_message(Client *client, int first_co,
                     "une prochaine fois ou avec un autre player : ");
   }
   send_to_client_text(client, message);
+  send_help_to_client(client);
+}
+
+static void send_help_to_client(Client *client) {
+  send_to_client_text(
+      client,
+      "Awale Game by Raphaël LETOURNEUR and Alois PINTO DE SILVA -- "
+      "WINNEFELD\n\n"
+      "Available commands : "
+      "\n\t- /me : display information about yourself"
+      "\n\t- /users : display a list of all users"
+      "\n\t- /player <name> : display information about a player"
+      "\n\t- /challenge <name> : challenge player to a game of awale"
+      "\n\t- /spectate <name> : spectate player's current game of awale"
+      "\n\t- /bio : you want to rewrite your bio"
+      "\n\t- /chat <name> <message> : send the message to the player name "
+      "(if unocupied)"
+      "\n\n");
 }
 
 static void handle_bio_response(Client *sender, char *buffer) {
@@ -859,18 +882,6 @@ static int player_already_connected(Player *p, Client *clients, int actual) {
   return 0;
 }
 
-static void afficher_clients(int taille, Client *clients) {
-  for (int i = 0; i < taille; i++) {
-    printf("Client : socket : %d\n", clients[i].sock);
-  }
-}
-
-static void afficher_players(int taille, Player **players) {
-  for (int i = 0; i < taille; i++) {
-    printf("Player : nom : %s, id : %d\n", players[i]->name, players[i]->id);
-  }
-}
-
 static Player *find_player_by_name(char *buffer, Player **players,
                                    int nb_players) {
   for (int i = 0; i < nb_players; i++) {
@@ -948,40 +959,6 @@ static int load_players(Player ***players, int *nombre_player,
   // afficher_players(*nombre_player, *players);
   fclose(file);
   return id;
-}
-
-static void afficher_jeu(jeu_t jeu, Client *client1, Client *client2) {
-  char message[1024];
-  char tmp[32];
-  message[0] = 0;
-  strncpy(message, "", sizeof(message) - strlen(message) - 1);
-  for (int i = 0; i < 6; i++) {
-    snprintf(tmp, sizeof tmp, "%d", jeu.plateau[i]);
-    strncat(message, tmp, sizeof(message) - strlen(message) - 1);
-    strncat(message, " ", sizeof(message) - strlen(message) - 1);
-  }
-  strncat(message, "\n", sizeof(message) - strlen(message) - 1);
-  for (int i = 11; i > 5; i--) {
-    snprintf(tmp, sizeof tmp, "%d", jeu.plateau[i]);
-    strncat(message, tmp, sizeof(message) - strlen(message) - 1);
-    strncat(message, " ", sizeof(message) - strlen(message) - 1);
-  }
-  strncat(message, "\n", sizeof(message) - strlen(message) - 1);
-  strncat(message, "Score de ", sizeof(message) - strlen(message) - 1);
-  strncat(message, client1->player->name,
-          sizeof(message) - strlen(message) - 1);
-  strncat(message, " : ", sizeof(message) - strlen(message) - 1);
-  snprintf(tmp, sizeof tmp, "%d", jeu.j1Score);
-  strncat(message, tmp, sizeof(message) - strlen(message) - 1);
-  strncat(message, "\nScore de ", sizeof(message) - strlen(message) - 1);
-  strncat(message, client2->player->name,
-          sizeof(message) - strlen(message) - 1);
-  strncat(message, " : ", sizeof(message) - strlen(message) - 1);
-  snprintf(tmp, sizeof tmp, "%d", jeu.j2Score);
-  strncat(message, tmp, sizeof(message) - strlen(message) - 1);
-  strncat(message, "\n", sizeof(message) - strlen(message) - 1);
-  send_to_client_text(client1, message);
-  send_to_client_text(client2, message);
 }
 
 int main(int argc, char **argv) {

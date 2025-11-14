@@ -2,6 +2,7 @@
 #define GAME_H
 
 #include "awale.h"
+#include "client.h"
 #include "player.h"
 
 typedef struct _Game {

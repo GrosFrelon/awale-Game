@@ -1,30 +1,27 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-// #ifdef WIN32
+#ifdef WIN32
 
-// #include <winsock2.h>
+#include <winsock2.h>
 
-// #elif defined(linux)
+#elif defined(linux)
 
-#include "types.h"
 #include <arpa/inet.h>
 #include <netdb.h> /* gethostbyname */
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h> /* close */
-// #define INVALID_SOCKET -1
-// #define SOCKET_ERROR -1
-// #define closesocket(s) close(s)
 
-// #else
+#else
 
-// #error not defined for this platform
+#error not defined for this platform
 
-// #endif
+#endif
 
 #include "constants.h"
+#include "types.h"
 
 #include "awale.h"
 #include "client.h"
@@ -35,17 +32,9 @@
 static void init(void);
 static void end(void);
 static void app(void);
-// static int init_connection(void);
-// static void end_connection(int sock);
-// static int read_client(SOCKET sock, char *buffer);
-// static void write_client(SOCKET sock, const char *buffer);
-// static void send_message_to_all_clients(Client *clients, Client client,
-//                                         int actual, const char *buffer,
-//                                         char from_server);
 static void send_unoccupied_clients(Client *clients, Client *client,
                                     int actual);
 static void remove_client(Client *clients, int to_remove, int *actual);
-// static void clear_clients(Client *clients, int actual);
 static void analyse_command(Client *client, const char *buffer, Client *clients,
                             int actual, game_node **list_games,
                             Player **players, int nombre_player);
@@ -59,16 +48,13 @@ static void send_welcome_message(Client *client, int first_co,
                                  int player_already_co);
 static Client *find_client_by_name(Client *clients, char *client, int actual);
 static Client *is_client_unocupied(Client *clients, char *client, int actual);
-static void afficher_clients(int taille, Client *clients);
 static void add_player(Player ***players, Player *player, int *nombre_player,
                        int *taille_liste);
-static void afficher_players(int taille, Player **players);
 static Player *find_player_by_name(char *buffer, Player **players,
                                    int nb_players);
 static void spectate(Client *sender, char *player_name, Client *clients,
                      int actual, game_node **list_games);
 static void add_watcher(Game *game, Client *client);
-static void afficher_jeu(jeu_t jeu, Client *client1, Client *client2);
 static void handle_challenge_response(Client *sender, Client *opponent,
                                       char *buffer, Client *clients,
                                       game_node **list_games, int *game_id);
@@ -90,6 +76,9 @@ static void save_players(Player **players, int nombre_player);
 static int load_players(Player ***players, int *nombre_player,
                         int *taille_liste);
 static void quit_watching(Client *sender);
-static void send_message_other(Client* sender, const char* buffer, Client* clients, int actual);
+static void send_message_other(Client *sender, const char *buffer,
+                               Client *clients, int actual);
+static void send_help_to_client(Client *client);
+static void send_game_help_to_client(Client *client);
 
 #endif /* guard */

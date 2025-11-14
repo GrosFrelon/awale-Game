@@ -14,7 +14,6 @@ typedef struct {
 } jeu_t;
 
 jeu_t *initGame(int rotation, char *namePlayer1, char *namePlayer2);
-void afficher(jeu_t jeu);
 int appliquerCoup(int numeroJoueur, int position, jeu_t *jeu);
 int positionCampAdverse(int position, int numeroJoueur);
 

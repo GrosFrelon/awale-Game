@@ -1,13 +1,7 @@
 #ifndef LISTE_CHAINE_H
 #define LISTE_CHAINE_H
 
-#include "client.h"
 #include "game.h"
-
-typedef struct _client_node {
-  Client *client;
-  struct _client_node *next;
-} client_node;
 
 typedef struct _game_node {
   Game *game;

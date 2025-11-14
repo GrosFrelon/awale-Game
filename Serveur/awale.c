@@ -1,4 +1,4 @@
-#include <stdio.h>
+// #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -48,19 +48,6 @@ jeu_t *initGame(int rotation, char *namePlayer1, char *namePlayer2) {
   strcpy(jeu->j1Name, namePlayer1);
   strcpy(jeu->j2Name, namePlayer2);
   return jeu;
-}
-
-void afficher(jeu_t jeu) {
-  for (int i = 0; i < 6; i++) {
-    printf("%d ", jeu.plateau[i]);
-  }
-  printf("\n");
-  for (int i = 11; i > 5; i--) {
-    printf("%d ", jeu.plateau[i]);
-  }
-  printf("\n");
-  printf("Score du J1 : %d \n", jeu.j1Score);
-  printf("Score du J2 : %d \n", jeu.j2Score);
 }
 
 int appliquerCoup(int numeroJoueur, int position, jeu_t *jeu) {
