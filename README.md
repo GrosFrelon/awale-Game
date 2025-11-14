@@ -180,7 +180,7 @@ Les paramètres principaux sont définis dans [`Serveur/constants.h`](Serveur/co
 ## 🤖 Utilisation de l'IA
 
 Lors du développement de ce projet, plusieurs outils d'IA ont été utilisés : Github Copilot, ChatGPT, Perplexity.
-Nous avons une approche assez critique sur l'utilisation abusive de l'IA dans le cadre de nos projets étudiants, car nous estimons que si l'IA code à notre place, la réalisation d'un tel projet n'a plus de sens. Nous avons donc cherché à réduire les appels à ces outils à des explications et de la recherche et la compréhension d'erreurs pour maximimiser ce que nous retiendrons du projet. Nous avons parfois généré du code pour résoudre des problèmes.
+Nous avons une approche assez critique sur l'utilisation abusive de l'IA dans le cadre de nos projets étudiants, car nous estimons que si l'IA code à notre place, la réalisation d'un tel projet n'a plus de sens. Nous avons donc cherché à réduire les appels à ces outils à des explications et de la recherche et la compréhension d'erreurs pour maximimiser ce que nous retiendrons du projet. Nous avons parfois généré du code pour résoudre des problèmes. Enfin, l'IA a été utilisée pour accélérer la création de l'interface côté client ainsi que la rédaction de ce Readme.
 Lorsqu'elle est bien utilisée, nous estimons que l'IA peut être bénéfique pour l'analyse de bugs, notamment les outils comme Github Copilot qui peuvent avoir accès à l'ensemble des fichiers.
 
 ## 📜 Notes
