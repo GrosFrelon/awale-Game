@@ -145,7 +145,7 @@ Format : `[type:1 octet][longueur:4 octets][données:N octets]`
 
 ## 💾 Sauvegarde
 
-Les profils joueurs sont automatiquement sauvegardés dans [`save.txt`](save.txt) lors de l'arrêt du serveur. Le fichier contient :
+Les profils joueurs sont automatiquement sauvegardés dans `save.txt` lors de l'arrêt du serveur. Le fichier contient :
 - ID unique
 - Nom
 - Biographie
@@ -176,6 +176,12 @@ Les paramètres principaux sont définis dans [`Serveur/constants.h`](Serveur/co
 - Le serveur doit être arrêté proprement (appui sur une touche) pour sauvegarder les données
 - Pas de reconnexion automatique en cas de déconnexion
 - Pas de système de classement ELO fonctionnel (structure présente pour implémentation future)
+
+## 🤖 Utilisation de l'IA
+
+Lors du développement de ce projet, plusieurs outils d'IA ont été utilisés : Github Copilot, ChatGPT, Perplexity.
+Nous avons une approche assez critique sur l'utilisation abusive de l'IA dans le cadre de nos projets étudiants, car nous estimons que si l'IA code à notre place, la réalisation d'un tel projet n'a plus de sens. Nous avons donc cherché à réduire les appels à ces outils à des explications et de la recherche et la compréhension d'erreurs pour maximimiser ce que nous retiendrons du projet. Nous avons parfois généré du code pour résoudre des problèmes.
+Lorsqu'elle est bien utilisée, nous estimons que l'IA peut être bénéfique pour l'analyse de bugs, notamment les outils comme Github Copilot qui peuvent avoir accès à l'ensemble des fichiers.
 
 ## 📜 Notes
 
